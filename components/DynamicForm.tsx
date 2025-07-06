@@ -1,29 +1,18 @@
-'use client'
-
-import { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react';
+import { Sparkles, Brain, Database, FileText, Building, DollarSign, Users, Shield, Calendar, Map, Code, Zap, Workflow, Bot, Target, Globe, Lock, TrendingUp, ChevronRight, Play, Wand2, Settings, GitBranch, BarChart3, Clock, CheckCircle, ArrowRight } from 'lucide-react';
 
 interface Field {
   name: string;
   label: string;
-  type: 
-    // Basic Data Types
-    'data' | 'small_text' | 'long_text' | 'text' | 'markdown' | 'html' | 'code' |
-    // Numeric Types  
-    'int' | 'float' | 'currency' | 'percent' | 'rating' |
-    // Date & Time
-    'date' | 'datetime' | 'time' | 'duration' |
-    // Relationships
-    'link' | 'dynamic_link' | 'table' | 'table_multiselect' |
-    // Choice
-    'select' | 'autocomplete' | 'multiselect' | 'radio' | 'checkbox' |
-    // Files & Media
-    'attach' | 'attach_image' | 'image' | 'signature' | 'barcode' |
-    // Visual/Layout/UI
-    'color' | 'heading' | 'button' | 'read_only' | 'icon' |
-    // Specialized
-    'geolocation' | 'json' | 'password' | 'phone' | 'email' | 'url' |
-    // Additional Web Types
-    'number' | 'range' | 'search' | 'switch' | 'tags' | 'file';
+  type: 'data' | 'small_text' | 'long_text' | 'text' | 'markdown' | 'html' | 'code' |
+        'int' | 'float' | 'currency' | 'percent' | 'rating' |
+        'date' | 'datetime' | 'time' | 'duration' |
+        'link' | 'dynamic_link' | 'table' | 'table_multiselect' |
+        'select' | 'autocomplete' | 'multiselect' | 'radio' | 'checkbox' |
+        'attach' | 'attach_image' | 'image' | 'signature' | 'barcode' |
+        'color' | 'heading' | 'button' | 'read_only' | 'icon' |
+        'geolocation' | 'json' | 'password' | 'phone' | 'email' | 'url' |
+        'number' | 'range' | 'search' | 'switch' | 'tags' | 'file';
   required?: boolean;
   options?: string[];
   placeholder?: string;
@@ -52,1167 +41,1184 @@ interface Field {
     fileSize?: string;
     fileTypes?: string[];
   };
+  conditional?: {
+    dependsOn: string;
+    value: any;
+    operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'in';
+  };
+  aiEnhanced?: {
+    autoComplete?: boolean;
+    smartValidation?: boolean;
+    predictiveText?: boolean;
+    contextualHelp?: boolean;
+  };
 }
 
 interface Schema {
-  title?: string;
-  description?: string;
+  title: string;
+  description: string;
+  category: string;
   fields: Field[];
-  submitText?: string;
-  resetText?: string;
+  submitText: string;
+  resetText: string;
+  mexalyFeatures?: {
+    processAutomation?: {
+      enabled: boolean;
+      triggers: string[];
+      actions: string[];
+    };
+    aiInsights?: {
+      enabled: boolean;
+      analytics: string[];
+      predictions: string[];
+    };
+    integrations?: {
+      erp: boolean;
+      crm: boolean;
+      accounting: boolean;
+      hr: boolean;
+      compliance: boolean;
+      analytics: boolean;
+    };
+    security?: {
+      encryption: boolean;
+      auditTrail: boolean;
+      roleBasedAccess: boolean;
+      complianceFrameworks: string[];
+    };
+    workflow?: {
+      stages: Array<{
+        name: string;
+        fields: string[];
+        approvers?: string[];
+        conditions?: Array<{
+          field: string;
+          operator: string;
+          value: any;
+        }>;
+        automation?: {
+          email: boolean;
+          webhook: boolean;
+          dataSync: boolean;
+        };
+      }>;
+    };
+  };
 }
 
-interface DynamicFormProps {
-  schema: Schema;
-}
+const MexalyAIFormBuilder = () => {
+  const [selectedPromptType, setSelectedPromptType] = useState('');
+  const [businessContext, setBusinessContext] = useState('');
+  const [userInput, setUserInput] = useState('');
+  const [generatedSchema, setGeneratedSchema] = useState<Schema | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState('builder');
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
-export default function DynamicForm({ schema }: DynamicFormProps) {
-  const [formData, setFormData] = useState<Record<string, any>>({})
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [submitted, setSubmitted] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const businessSolutions = [
+    {
+      id: 'process_automation',
+      name: 'Process Automation',
+      icon: Workflow,
+      color: 'bg-blue-600',
+      description: 'Intelligent workflows that eliminate manual tasks',
+      capabilities: ['Smart Routing', 'Auto-approval', 'Data Validation', 'Exception Handling'],
+      examples: ['Employee Onboarding', 'Purchase Requests', 'Invoice Processing', 'Quality Control']
+    },
+    {
+      id: 'compliance_governance',
+      name: 'Compliance & Governance',
+      icon: Shield,
+      color: 'bg-red-600',
+      description: 'Automated compliance with audit trails and controls',
+      capabilities: ['Audit Trails', 'Role-based Access', 'Data Privacy', 'Regulatory Reporting'],
+      examples: ['KYC Forms', 'Risk Assessments', 'Compliance Checklists', 'Incident Reports']
+    },
+    {
+      id: 'data_intelligence',
+      name: 'Data Intelligence',
+      icon: BarChart3,
+      color: 'bg-purple-600',
+      description: 'AI-powered insights and predictive analytics',
+      capabilities: ['Predictive Analytics', 'Anomaly Detection', 'Real-time Dashboards', 'ML Insights'],
+      examples: ['Performance Reviews', 'Customer Surveys', 'Financial Planning', 'Market Research']
+    },
+    {
+      id: 'customer_experience',
+      name: 'Customer Experience',
+      icon: Users,
+      color: 'bg-green-600',
+      description: 'Omnichannel experiences with personalization',
+      capabilities: ['Personalization', 'Multi-channel', 'Journey Mapping', 'Feedback Loops'],
+      examples: ['Service Requests', 'Product Registration', 'Support Tickets', 'Feedback Forms']
+    },
+    {
+      id: 'financial_operations',
+      name: 'Financial Operations',
+      icon: DollarSign,
+      color: 'bg-orange-600',
+      description: 'Integrated financial processes with real-time controls',
+      capabilities: ['Real-time Validation', 'Integration APIs', 'Fraud Detection', 'Cost Analytics'],
+      examples: ['Expense Reports', 'Budget Requests', 'Vendor Applications', 'Invoice Approvals']
+    },
+    {
+      id: 'enterprise_integration',
+      name: 'Enterprise Integration',
+      icon: Globe,
+      color: 'bg-indigo-600',
+      description: 'Seamless connectivity with existing enterprise systems',
+      capabilities: ['API Integration', 'Data Sync', 'SSO Authentication', 'Legacy Systems'],
+      examples: ['System Onboarding', 'Data Migration', 'API Configurations', 'Integration Testing']
+    }
+  ];
 
-  const handleInputChange = (name: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-    
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }))
-    }
-  }
-
-  const validateField = (field: Field, value: any) => {
-    if (field.required && (!value || value === '' || (Array.isArray(value) && value.length === 0))) {
-      return `${field.label} is required`
-    }
-    
-    if (!value) return ''
-    
-    // Email validation
-    if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      return 'Please enter a valid email address'
-    }
-    
-    // URL validation
-    if (field.type === 'url' && !/^https?:\/\/.+/.test(value)) {
-      return 'Please enter a valid URL (starting with http:// or https://)'
-    }
-    
-    // Phone validation
-    if (field.type === 'phone' && !/^[\+]?[\d\s\-\(\)]+$/.test(value)) {
-      return 'Please enter a valid phone number'
-    }
-    
-    // Pattern validation
-    if (field.pattern && !new RegExp(field.pattern).test(value)) {
-      return field.validation?.custom || 'Please enter a valid format'
-    }
-    
-    // Length validation
-    if (field.validation?.minLength && value.length < field.validation.minLength) {
-      return `Minimum ${field.validation.minLength} characters required`
-    }
-    
-    if (field.validation?.maxLength && value.length > field.validation.maxLength) {
-      return `Maximum ${field.validation.maxLength} characters allowed`
-    }
-    
-    // Number validation
-    if (field.type === 'number' || field.type === 'range') {
-      const numValue = parseFloat(value)
-      if (field.validation?.min !== undefined && numValue < field.validation.min) {
-        return `Minimum value is ${field.validation.min}`
+  const intelligentPromptBuilder = (category: string, context: string, description: string) => {
+    const categoryConfigs = {
+      process_automation: {
+        focusAreas: ['workflow_efficiency', 'task_automation', 'approval_chains', 'exception_handling'],
+        aiFeatures: {
+          smartRouting: true,
+          autoValidation: true,
+          predictiveFields: true,
+          contextualHelp: true
+        },
+        standardFields: {
+          requestor: { type: 'link', target: 'User' },
+          priority: { type: 'select', options: ['Low', 'Medium', 'High', 'Critical'] },
+          deadline: { type: 'datetime' },
+          approval_status: { type: 'select', options: ['Pending', 'Approved', 'Rejected', 'On Hold'] }
+        },
+        mexalyIntegrations: {
+          processAutomation: true,
+          aiInsights: true,
+          workflow: true
+        }
+      },
+      compliance_governance: {
+        focusAreas: ['regulatory_compliance', 'audit_trails', 'risk_management', 'data_governance'],
+        aiFeatures: {
+          complianceCheck: true,
+          riskScoring: true,
+          auditGeneration: true,
+          regulatoryUpdates: true
+        },
+        standardFields: {
+          compliance_officer: { type: 'link', target: 'User' },
+          risk_level: { type: 'rating', maxStars: 5 },
+          regulatory_framework: { type: 'multiselect', options: ['SOX', 'GDPR', 'HIPAA', 'ISO27001'] },
+          audit_signature: { type: 'signature' }
+        },
+        mexalyIntegrations: {
+          security: true,
+          auditTrail: true,
+          compliance: true
+        }
+      },
+      data_intelligence: {
+        focusAreas: ['analytics', 'insights', 'predictions', 'reporting'],
+        aiFeatures: {
+          predictiveAnalytics: true,
+          anomalyDetection: true,
+          naturalLanguageQuery: true,
+          autoInsights: true
+        },
+        standardFields: {
+          metric_type: { type: 'select', options: ['KPI', 'Metric', 'Dimension', 'Measure'] },
+          data_source: { type: 'link', target: 'DataSource' },
+          frequency: { type: 'select', options: ['Real-time', 'Hourly', 'Daily', 'Weekly', 'Monthly'] },
+          visualization: { type: 'multiselect', options: ['Chart', 'Table', 'Dashboard', 'Report'] }
+        },
+        mexalyIntegrations: {
+          aiInsights: true,
+          analytics: true,
+          predictiveModels: true
+        }
+      },
+      customer_experience: {
+        focusAreas: ['customer_journey', 'personalization', 'multichannel', 'satisfaction'],
+        aiFeatures: {
+          personalizedExperience: true,
+          sentimentAnalysis: true,
+          chatbotIntegration: true,
+          behaviorPrediction: true
+        },
+        standardFields: {
+          customer_id: { type: 'link', target: 'Customer' },
+          interaction_channel: { type: 'select', options: ['Web', 'Mobile', 'Email', 'Phone', 'Chat'] },
+          satisfaction_score: { type: 'rating', maxStars: 10 },
+          journey_stage: { type: 'select', options: ['Awareness', 'Consideration', 'Purchase', 'Retention'] }
+        },
+        mexalyIntegrations: {
+          crm: true,
+          customerInsights: true,
+          omnichannel: true
+        }
+      },
+      financial_operations: {
+        focusAreas: ['financial_control', 'cost_management', 'fraud_prevention', 'compliance'],
+        aiFeatures: {
+          fraudDetection: true,
+          costOptimization: true,
+          predictiveBudgeting: true,
+          riskAssessment: true
+        },
+        standardFields: {
+          amount: { type: 'currency', currency: 'USD' },
+          cost_center: { type: 'link', target: 'CostCenter' },
+          budget_category: { type: 'select', options: ['OPEX', 'CAPEX', 'Revenue', 'Investment'] },
+          approval_limit: { type: 'currency', currency: 'USD' }
+        },
+        mexalyIntegrations: {
+          accounting: true,
+          erp: true,
+          fraudDetection: true
+        }
+      },
+      enterprise_integration: {
+        focusAreas: ['system_connectivity', 'data_sync', 'api_management', 'legacy_modernization'],
+        aiFeatures: {
+          autoMapping: true,
+          dataTransformation: true,
+          errorPrediction: true,
+          performanceOptimization: true
+        },
+        standardFields: {
+          system_name: { type: 'data' },
+          integration_type: { type: 'select', options: ['API', 'Database', 'File', 'Message Queue'] },
+          data_format: { type: 'select', options: ['JSON', 'XML', 'CSV', 'Binary'] },
+          sync_frequency: { type: 'select', options: ['Real-time', 'Batch', 'Scheduled', 'Event-driven'] }
+        },
+        mexalyIntegrations: {
+          apiGateway: true,
+          dataHub: true,
+          systemConnectors: true
+        }
       }
-      if (field.validation?.max !== undefined && numValue > field.validation.max) {
-        return `Maximum value is ${field.validation.max}`
+    };
+
+    const config = categoryConfigs[category as keyof typeof categoryConfigs];
+    if (!config) return null;
+
+    // AI-powered field generation based on context and description
+    const contextTerms = context.toLowerCase().split(' ');
+    const descTerms = description.toLowerCase().split(' ');
+    const allTerms = [...contextTerms, ...descTerms];
+
+    const relevantFields = Object.keys(config.standardFields).filter(field => {
+      const fieldTerms = field.toLowerCase().split('_');
+      return fieldTerms.some(term => allTerms.includes(term)) || 
+             allTerms.some(term => field.toLowerCase().includes(term));
+    });
+
+    // Generate intelligent field mapping
+    const fields: Field[] = relevantFields.map(fieldName => {
+      const fieldConfig = config.standardFields[fieldName as keyof typeof config.standardFields];
+      return {
+        name: fieldName,
+        label: fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        type: fieldConfig.type as any,
+        required: config.focusAreas.some(area => fieldName.includes(area.split('_')[0])),
+        ...(fieldConfig.options && { options: fieldConfig.options }),
+        ...(fieldConfig.currency && { currency: fieldConfig.currency }),
+        ...(fieldConfig.maxStars && { maxStars: fieldConfig.maxStars }),
+        ...(fieldConfig.target && { targetDocType: fieldConfig.target }),
+        aiEnhanced: {
+          autoComplete: config.aiFeatures.predictiveFields || false,
+          smartValidation: config.aiFeatures.autoValidation || false,
+          predictiveText: config.aiFeatures.predictiveFields || false,
+          contextualHelp: config.aiFeatures.contextualHelp || false
+        }
+      };
+    });
+
+    // Add context-specific fields based on description analysis
+    const additionalFields = generateContextualFields(description, category);
+    fields.push(...additionalFields);
+
+    const mexalyFeatures = {
+      processAutomation: {
+        enabled: config.mexalyIntegrations.processAutomation || false,
+        triggers: ['form_submit', 'field_change', 'approval_required'],
+        actions: ['send_notification', 'update_record', 'trigger_workflow']
+      },
+      aiInsights: {
+        enabled: config.mexalyIntegrations.aiInsights || false,
+        analytics: ['completion_rate', 'field_accuracy', 'user_behavior'],
+        predictions: ['approval_likelihood', 'completion_time', 'error_probability']
+      },
+      integrations: {
+        erp: config.mexalyIntegrations.erp || false,
+        crm: config.mexalyIntegrations.crm || false,
+        accounting: config.mexalyIntegrations.accounting || false,
+        hr: category === 'process_automation',
+        compliance: config.mexalyIntegrations.compliance || false,
+        analytics: config.mexalyIntegrations.analytics || false
+      },
+      security: {
+        encryption: true,
+        auditTrail: config.mexalyIntegrations.auditTrail || false,
+        roleBasedAccess: true,
+        complianceFrameworks: category === 'compliance_governance' ? 
+          ['SOC2', 'GDPR', 'HIPAA', 'ISO27001'] : ['SOC2']
+      },
+      workflow: generateIntelligentWorkflow(category, fields)
+    };
+
+    return {
+      title: `${config.focusAreas[0].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Form`,
+      description: description,
+      category: category,
+      fields: fields,
+      submitText: 'Process with Mexaly AI',
+      resetText: 'Reset',
+      mexalyFeatures: mexalyFeatures
+    };
+  };
+
+  const generateContextualFields = (description: string, category: string): Field[] => {
+    const additionalFields: Field[] = [];
+    const desc = description.toLowerCase();
+
+    // Smart field detection based on keywords
+    if (desc.includes('document') || desc.includes('file') || desc.includes('upload')) {
+      additionalFields.push({
+        name: 'supporting_documents',
+        label: 'Supporting Documents',
+        type: 'attach',
+        multiple: true,
+        accept: '.pdf,.doc,.docx,.xls,.xlsx',
+        aiEnhanced: {
+          autoComplete: false,
+          smartValidation: true,
+          predictiveText: false,
+          contextualHelp: true
+        }
+      });
+    }
+
+    if (desc.includes('location') || desc.includes('address') || desc.includes('map')) {
+      additionalFields.push({
+        name: 'location',
+        label: 'Location',
+        type: 'geolocation',
+        mapType: 'roadmap',
+        aiEnhanced: {
+          autoComplete: true,
+          smartValidation: true,
+          predictiveText: false,
+          contextualHelp: true
+        }
+      });
+    }
+
+    if (desc.includes('signature') || desc.includes('approval') || desc.includes('sign')) {
+      additionalFields.push({
+        name: 'digital_signature',
+        label: 'Digital Signature',
+        type: 'signature',
+        required: true,
+        aiEnhanced: {
+          autoComplete: false,
+          smartValidation: true,
+          predictiveText: false,
+          contextualHelp: true
+        }
+      });
+    }
+
+    if (desc.includes('comment') || desc.includes('note') || desc.includes('feedback')) {
+      additionalFields.push({
+        name: 'comments',
+        label: 'Comments',
+        type: 'long_text',
+        placeholder: 'Enter additional comments or notes...',
+        aiEnhanced: {
+          autoComplete: true,
+          smartValidation: false,
+          predictiveText: true,
+          contextualHelp: true
+        }
+      });
+    }
+
+    return additionalFields;
+  };
+
+  const generateIntelligentWorkflow = (category: string, fields: Field[]) => {
+    const workflowTemplates: Record<string, any> = {
+      process_automation: {
+        stages: [
+          { 
+            name: 'Initiation', 
+            fields: fields.slice(0, Math.ceil(fields.length / 3)).map(f => f.name),
+            automation: { email: true, webhook: false, dataSync: true }
+          },
+          { 
+            name: 'Review', 
+            fields: fields.slice(Math.ceil(fields.length / 3), Math.ceil(2 * fields.length / 3)).map(f => f.name),
+            approvers: ['manager', 'department_head'],
+            automation: { email: true, webhook: true, dataSync: true }
+          },
+          { 
+            name: 'Approval', 
+            fields: fields.slice(Math.ceil(2 * fields.length / 3)).map(f => f.name),
+            approvers: ['executive'],
+            automation: { email: true, webhook: true, dataSync: true }
+          }
+        ]
+      },
+      compliance_governance: {
+        stages: [
+          { 
+            name: 'Documentation', 
+            fields: fields.filter(f => f.type === 'attach' || f.type === 'long_text').map(f => f.name),
+            automation: { email: true, webhook: false, dataSync: true }
+          },
+          { 
+            name: 'Compliance Review', 
+            fields: fields.filter(f => f.name.includes('compliance') || f.name.includes('risk')).map(f => f.name),
+            approvers: ['compliance_officer'],
+            automation: { email: true, webhook: true, dataSync: true }
+          },
+          { 
+            name: 'Final Approval', 
+            fields: fields.filter(f => f.type === 'signature').map(f => f.name),
+            approvers: ['legal_team'],
+            automation: { email: true, webhook: true, dataSync: true }
+          }
+        ]
       }
+    };
+
+    return workflowTemplates[category] || {
+      stages: [
+        { 
+          name: 'Submission', 
+          fields: fields.map(f => f.name),
+          automation: { email: true, webhook: false, dataSync: true }
+        }
+      ]
+    };
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedPromptType || !userInput.trim()) return;
+
+    setIsGenerating(true);
+    
+    try {
+      // Simulate AI processing with Mexaly intelligence
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      const schema = intelligentPromptBuilder(selectedPromptType, businessContext, userInput);
+      setGeneratedSchema(schema);
+      setActiveTab('preview');
+      
+      // Scroll to results
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    } catch (error) {
+      console.error('Generation error:', error);
+    } finally {
+      setIsGenerating(false);
     }
-    
-    return ''
-  }
+  };
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {}
+  const renderField = (field: Field, index: number) => {
+    const inputClasses = "w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200";
+    const enhancedClasses = field.aiEnhanced?.smartValidation ? 
+      `${inputClasses} border-blue-300 bg-blue-50/30` : inputClasses;
     
-    schema.fields.forEach(field => {
-      const error = validateField(field, formData[field.name])
-      if (error) {
-        newErrors[field.name] = error
-      }
-    })
-    
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (validateForm()) {
-      setIsSubmitting(true)
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setSubmitted(true)
-      setIsSubmitting(false)
-      console.log('Form submitted:', formData)
-    }
-  }
-
-  const handleReset = () => {
-    setFormData({})
-    setErrors({})
-    setSubmitted(false)
-  }
-
-  const getFieldIcon = (type: string) => {
-    const iconClass = "w-4 h-4 text-gray-400"
-    
-    switch (type) {
-      case 'email':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>
-      case 'phone':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-      case 'url':
-      case 'link':
-      case 'dynamic_link':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-      case 'barcode':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11V9a6 6 0 10-12 0v7m-3 0h18m-9 4h.01M19 21l-7-4-7 4V5a2 2 0 012-2h10a2 2 0 012 2v16z" /></svg>
-      case 'signature':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-      case 'percent':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-      case 'password':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-      case 'date':
-      case 'datetime':
-      case 'time':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-      case 'attach':
-      case 'attach_image':
-      case 'file':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-      case 'currency':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
-      case 'geolocation':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-      case 'json':
-      case 'code':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-      case 'search':
-        return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-      default:
-        return null
-    }
-  }
-
-  const renderField = (field: Field) => {
-    const hasError = errors[field.name]
-    const baseInputClasses = `w-full px-4 py-3 border-2 rounded-xl shadow-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 ${
-      hasError ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 hover:border-gray-300'
-    }`
-    
-    const iconInputClasses = `${baseInputClasses} pl-12`
-
     switch (field.type) {
-      // Basic Data Types
       case 'data':
       case 'email':
-      case 'password':
-      case 'phone':
       case 'url':
-      case 'search':
+      case 'phone':
         return (
-          <div className="relative">
-            {getFieldIcon(field.type) && (
-              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-                {getFieldIcon(field.type)}
+          <div key={index} className="relative">
+            <input
+              type={field.type === 'data' ? 'text' : field.type}
+              placeholder={field.placeholder || field.label}
+              className={enhancedClasses}
+              required={field.required}
+            />
+            {field.aiEnhanced?.autoComplete && (
+              <div className="absolute right-3 top-3">
+                <Bot className="w-5 h-5 text-blue-500" />
               </div>
             )}
-            <input
-              type={field.type === 'data' ? 'text' : field.type === 'phone' ? 'tel' : field.type}
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className={getFieldIcon(field.type) ? iconInputClasses : baseInputClasses}
-              placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-              pattern={field.pattern}
-              minLength={field.validation?.minLength}
-              maxLength={field.validation?.maxLength || (field.type === 'data' ? 140 : undefined)}
-            />
           </div>
-        )
-
-      // Text Areas
+        );
+      
       case 'small_text':
       case 'long_text':
-      case 'text':
         return (
-          <textarea
-            id={field.name}
-            name={field.name}
-            rows={field.type === 'small_text' ? 3 : field.type === 'long_text' ? 8 : 4}
-            value={formData[field.name] || ''}
-            onChange={(e) => handleInputChange(field.name, e.target.value)}
-            className={`${baseInputClasses} resize-none`}
-            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-            minLength={field.validation?.minLength}
-            maxLength={field.validation?.maxLength}
-          />
-        )
-
-      // Rich Text Editors
-      case 'markdown':
-        return (
-          <div className="space-y-2">
+          <div key={index} className="relative">
             <textarea
-              id={field.name}
-              name={field.name}
-              rows={8}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className={`${baseInputClasses} resize-none font-mono text-sm`}
-              placeholder={field.placeholder || `Enter markdown content...`}
+              rows={field.type === 'small_text' ? 3 : 6}
+              placeholder={field.placeholder || field.label}
+              className={enhancedClasses}
+              required={field.required}
             />
-            <div className="text-xs text-gray-500 flex items-center">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Supports **bold**, *italic*, `code`, and [links](url)
-            </div>
+            {field.aiEnhanced?.predictiveText && (
+              <div className="absolute right-3 top-3">
+                <Wand2 className="w-5 h-5 text-purple-500" />
+              </div>
+            )}
           </div>
-        )
-
-      case 'html':
-        return (
-          <textarea
-            id={field.name}
-            name={field.name}
-            rows={8}
-            value={formData[field.name] || ''}
-            onChange={(e) => handleInputChange(field.name, e.target.value)}
-            className={`${baseInputClasses} resize-none font-mono text-sm`}
-            placeholder={field.placeholder || `<p>Enter HTML content...</p>`}
-          />
-        )
-
-      case 'code':
-        return (
-          <div className="space-y-2">
-            <textarea
-              id={field.name}
-              name={field.name}
-              rows={10}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className={`${baseInputClasses} resize-none font-mono text-sm bg-gray-900 text-green-400 border-gray-700`}
-              placeholder={field.placeholder || `// Enter your code here...`}
-            />
-            <div className="text-xs text-gray-500 flex items-center">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-              </svg>
-              Code editor with syntax highlighting
-            </div>
-          </div>
-        )
-
-      // Numeric Types
-      case 'int':
-      case 'number':
-        return (
-          <input
-            type="number"
-            id={field.name}
-            name={field.name}
-            value={formData[field.name] || ''}
-            onChange={(e) => handleInputChange(field.name, field.type === 'int' ? parseInt(e.target.value) || '' : e.target.value)}
-            className={baseInputClasses}
-            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-            min={field.min || field.validation?.min}
-            max={field.max || field.validation?.max}
-            step={field.type === 'int' ? 1 : field.step}
-          />
-        )
-
-      case 'float':
-        return (
-          <input
-            type="number"
-            id={field.name}
-            name={field.name}
-            value={formData[field.name] || ''}
-            onChange={(e) => handleInputChange(field.name, parseFloat(e.target.value) || '')}
-            className={baseInputClasses}
-            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-            min={field.min || field.validation?.min}
-            max={field.max || field.validation?.max}
-            step={field.step || 0.01}
-          />
-        )
-
+        );
+      
       case 'currency':
         return (
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-              {getFieldIcon(field.type)}
-            </div>
-            <input
-              type="number"
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, parseFloat(e.target.value) || '')}
-              className={iconInputClasses}
-              placeholder={field.placeholder || `0.00`}
-              min={field.min || 0}
-              max={field.max}
-              step={0.01}
-            />
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+          <div key={index} className="relative">
+            <span className="absolute left-4 top-3 text-gray-500 font-medium">
               {field.currency || 'USD'}
-            </div>
-          </div>
-        )
-
-      case 'percent':
-        return (
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-              {getFieldIcon(field.type)}
-            </div>
+            </span>
             <input
               type="number"
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, parseFloat(e.target.value) || '')}
-              className={iconInputClasses}
-              placeholder={field.placeholder || `0`}
-              min={field.min || 0}
-              max={field.max || 100}
-              step={field.step || 0.1}
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              className={`${enhancedClasses} pl-16`}
+              required={field.required}
             />
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-              %
+            <div className="absolute right-3 top-3">
+              <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
           </div>
-        )
-
-      case 'range':
-        return (
-          <div className="space-y-2">
-            <input
-              type="range"
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || field.min || 0}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-              min={field.min || field.validation?.min || 0}
-              max={field.max || field.validation?.max || 100}
-              step={field.step || 1}
-            />
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>{field.min || field.validation?.min || 0}</span>
-              <span className="font-medium text-blue-600">{formData[field.name] || field.min || 0}</span>
-              <span>{field.max || field.validation?.max || 100}</span>
-            </div>
-          </div>
-        )
-
-      // Date & Time Fields
-      case 'date':
-        return (
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-              {getFieldIcon(field.type)}
-            </div>
-            <input
-              type="date"
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className={iconInputClasses}
-            />
-          </div>
-        )
-
-      case 'datetime':
-        return (
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-              {getFieldIcon(field.type)}
-            </div>
-            <input
-              type="datetime-local"
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className={iconInputClasses}
-            />
-          </div>
-        )
-
-      case 'time':
-        return (
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-              {getFieldIcon(field.type)}
-            </div>
-            <input
-              type="time"
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className={iconInputClasses}
-            />
-          </div>
-        )
-
-      case 'duration':
-        return (
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Hours</label>
-              <input
-                type="number"
-                min="0"
-                max="23"
-                value={formData[field.name]?.hours || ''}
-                onChange={(e) => handleInputChange(field.name, {
-                  ...formData[field.name],
-                  hours: parseInt(e.target.value) || 0
-                })}
-                className={baseInputClasses}
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Minutes</label>
-              <input
-                type="number"
-                min="0"
-                max="59"
-                value={formData[field.name]?.minutes || ''}
-                onChange={(e) => handleInputChange(field.name, {
-                  ...formData[field.name],
-                  minutes: parseInt(e.target.value) || 0
-                })}
-                className={baseInputClasses}
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Seconds</label>
-              <input
-                type="number"
-                min="0"
-                max="59"
-                value={formData[field.name]?.seconds || ''}
-                onChange={(e) => handleInputChange(field.name, {
-                  ...formData[field.name],
-                  seconds: parseInt(e.target.value) || 0
-                })}
-                className={baseInputClasses}
-                placeholder="0"
-              />
-            </div>
-          </div>
-        )
-
-      // Relationship Fields
-      case 'link':
-        return (
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-              {getFieldIcon(field.type)}
-            </div>
-            <select
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className={iconInputClasses}
-            >
-              <option value="">Select {field.targetDocType || field.label.toLowerCase()}</option>
-              {field.options?.map((option, index) => (
-                <option key={index} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            {field.targetDocType && (
-              <div className="text-xs text-gray-500 mt-1">
-                Links to: {field.targetDocType}
-              </div>
-            )}
-          </div>
-        )
-
-      case 'dynamic_link':
-        return (
-          <div className="space-y-3">
-            <select
-              id={`${field.name}_type`}
-              name={`${field.name}_type`}
-              value={formData[`${field.name}_type`] || ''}
-              onChange={(e) => handleInputChange(`${field.name}_type`, e.target.value)}
-              className={baseInputClasses}
-            >
-              <option value="">Select type...</option>
-              {['Customer', 'Supplier', 'Employee', 'Item'].map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-                {getFieldIcon(field.type)}
-              </div>
-              <input
-                type="text"
-                id={field.name}
-                name={field.name}
-                value={formData[field.name] || ''}
-                onChange={(e) => handleInputChange(field.name, e.target.value)}
-                className={iconInputClasses}
-                placeholder={`Select ${formData[`${field.name}_type`] || 'item'} first...`}
-                disabled={!formData[`${field.name}_type`]}
-              />
-            </div>
-          </div>
-        )
-
-      case 'table':
-        return (
-          <div className="border-2 border-gray-200 rounded-xl p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-medium text-gray-700">{field.label} Items</h4>
-              <button
-                type="button"
-                onClick={() => {
-                  const currentItems = formData[field.name] || []
-                  handleInputChange(field.name, [...currentItems, {}])
-                }}
-                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
-              >
-                + Add Row
-              </button>
-            </div>
-            <div className="space-y-3 max-h-60 overflow-y-auto">
-              {(formData[field.name] || []).map((item: any, index: number) => (
-                <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <input
-                    type="text"
-                    placeholder="Item name"
-                    value={item.name || ''}
-                    onChange={(e) => {
-                      const items = [...(formData[field.name] || [])]
-                      items[index] = { ...items[index], name: e.target.value }
-                      handleInputChange(field.name, items)
-                    }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const items = formData[field.name] || []
-                      handleInputChange(field.name, items.filter((_: any, i: number) => i !== index))
-                    }}
-                    className="px-2 py-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              {(!formData[field.name] || formData[field.name].length === 0) && (
-                <div className="text-center py-8 text-gray-500">
-                  No items added yet. Click "Add Row" to start.
-                </div>
-              )}
-            </div>
-          </div>
-        )
-
-      case 'table_multiselect':
-        return (
-          <div className="space-y-2 max-h-48 overflow-y-auto border-2 border-gray-200 rounded-xl p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {field.options?.map((option, index) => (
-                <label key={index} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg">
-                  <input
-                    type="checkbox"
-                    checked={(formData[field.name] || []).includes(option)}
-                    onChange={(e) => {
-                      const currentValues = formData[field.name] || []
-                      const newValues = e.target.checked
-                        ? [...currentValues, option]
-                        : currentValues.filter((v: string) => v !== option)
-                      handleInputChange(field.name, newValues)
-                    }}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">{option}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        )
-
-      // Choice Fields
-      case 'select':
-        return (
-          <select
-            id={field.name}
-            name={field.name}
-            value={formData[field.name] || ''}
-            onChange={(e) => handleInputChange(field.name, e.target.value)}
-            className={baseInputClasses}
-          >
-            <option value="">Select {field.label.toLowerCase()}</option>
-            {field.options?.map((option, index) => (
-              <option key={index} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        )
-
-      case 'autocomplete':
-        return (
-          <div className="relative">
-            <input
-              type="text"
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className={baseInputClasses}
-              placeholder={field.placeholder || `Type to search ${field.label.toLowerCase()}...`}
-              list={`${field.name}_datalist`}
-            />
-            <datalist id={`${field.name}_datalist`}>
-              {field.options?.map((option, index) => (
-                <option key={index} value={option} />
-              ))}
-            </datalist>
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
-        )
-
-      case 'multiselect':
-        return (
-          <div className="space-y-2 max-h-40 overflow-y-auto border-2 border-gray-200 rounded-xl p-3">
-            {field.options?.map((option, index) => (
-              <label key={index} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg">
-                <input
-                  type="checkbox"
-                  checked={(formData[field.name] || []).includes(option)}
-                  onChange={(e) => {
-                    const currentValues = formData[field.name] || []
-                    const newValues = e.target.checked
-                      ? [...currentValues, option]
-                      : currentValues.filter((v: string) => v !== option)
-                    handleInputChange(field.name, newValues)
-                  }}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">{option}</span>
-              </label>
-            ))}
-          </div>
-        )
-
-      case 'radio':
-        return (
-          <div className="space-y-3">
-            {field.options?.map((option, index) => (
-              <label key={index} className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name={field.name}
-                  value={option}
-                  checked={formData[field.name] === option}
-                  onChange={(e) => handleInputChange(field.name, e.target.value)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">{option}</span>
-              </label>
-            ))}
-          </div>
-        )
-
-      case 'checkbox':
-        return (
-          <label className="flex items-center space-x-3 cursor-pointer">
-            <input
-              type="checkbox"
-              id={field.name}
-              name={field.name}
-              checked={formData[field.name] || false}
-              onChange={(e) => handleInputChange(field.name, e.target.checked)}
-              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">{field.label}</span>
-          </label>
-        )
-
-      case 'switch':
-        return (
-          <label className="flex items-center cursor-pointer">
-            <div className="relative">
-              <input
-                type="checkbox"
-                id={field.name}
-                name={field.name}
-                checked={formData[field.name] || false}
-                onChange={(e) => handleInputChange(field.name, e.target.checked)}
-                className="sr-only"
-              />
-              <div className={`block w-14 h-8 rounded-full transition-colors ${
-                formData[field.name] ? 'bg-blue-500' : 'bg-gray-300'
-              }`}></div>
-              <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
-                formData[field.name] ? 'transform translate-x-6' : ''
-              }`}></div>
-            </div>
-            <span className="ml-3 text-sm text-gray-700">{field.label}</span>
-          </label>
-        )
-
-      // Files & Media
-      case 'attach':
-      case 'attach_image':
-      case 'file':
-        return (
-          <div className="relative">
-            <input
-              type="file"
-              id={field.name}
-              name={field.name}
-              multiple={field.multiple}
-              accept={field.accept || (field.type === 'attach_image' ? '.jpg,.jpeg,.png,.gif,.webp' : undefined)}
-              onChange={(e) => handleInputChange(field.name, field.multiple ? e.target.files : e.target.files?.[0] || null)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <div className={`${baseInputClasses} flex items-center justify-center border-dashed text-center py-8`}>
-              <div>
-                <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <p className="text-gray-600">
-                  <span className="font-medium text-blue-600">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {field.type === 'attach_image' ? 'Images only' : field.accept || 'Any file type'}
-                  {field.validation?.fileSize && ` • Max ${field.validation.fileSize}`}
-                </p>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'signature':
-        return (
-          <div className="border-2 border-gray-200 rounded-xl p-4">
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              <p className="text-gray-600 mb-4">Digital Signature Pad</p>
-              <button
-                type="button"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                onClick={() => handleInputChange(field.name, 'signature_placeholder')}
-              >
-                Open Signature Pad
-              </button>
-              {formData[field.name] && (
-                <div className="mt-4 text-sm text-green-600">✓ Signature captured</div>
-              )}
-            </div>
-          </div>
-        )
-
-      case 'barcode':
-        return (
-          <div className="space-y-3">
-            <input
-              type="text"
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className={baseInputClasses}
-              placeholder={field.placeholder || 'Enter barcode or scan'}
-            />
-            <div className="flex items-center space-x-3">
-              <button
-                type="button"
-                className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                onClick={() => {
-                  // Barcode scanning simulation
-                  handleInputChange(field.name, Math.random().toString().substr(2, 12))
-                }}
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11V9a6 6 0 10-12 0v7m-3 0h18m-9 4h.01M19 21l-7-4-7 4V5a2 2 0 012-2h10a2 2 0 012 2v16z" />
-                </svg>
-                Scan Barcode
-              </button>
-              {formData[field.name] && (
-                <div className="text-sm text-gray-600 font-mono">{formData[field.name]}</div>
-              )}
-            </div>
-          </div>
-        )
-
-      case 'image':
-        return (
-          <div className="space-y-3">
-            <input
-              type="url"
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className={baseInputClasses}
-              placeholder="Enter image URL"
-            />
-            {formData[field.name] && (
-              <div className="border-2 border-gray-200 rounded-lg p-2">
-                <img
-                  src={formData[field.name]}
-                  alt="Preview"
-                  className="max-w-full h-32 object-cover rounded"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        )
-
-      // Specialized Fields
-      case 'geolocation':
-        return (
-          <div className="space-y-3">
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-                {getFieldIcon(field.type)}
-              </div>
-              <input
-                type="text"
-                id={field.name}
-                name={field.name}
-                value={formData[field.name] ? `${formData[field.name].lat}, ${formData[field.name].lng}` : ''}
-                onChange={(e) => {
-                  const [lat, lng] = e.target.value.split(',').map(s => parseFloat(s.trim()))
-                  if (!isNaN(lat) && !isNaN(lng)) {
-                    handleInputChange(field.name, { lat, lng })
-                  }
-                }}
-                className={iconInputClasses}
-                placeholder="Latitude, Longitude (e.g., 40.7128, -74.0060)"
-              />
-            </div>
-            <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <p className="text-gray-600 mb-4">Interactive Map ({field.mapType || 'roadmap'})</p>
-              <button
-                type="button"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                onClick={() => {
-                  // Simulate getting current location
-                  handleInputChange(field.name, { lat: 40.7128, lng: -74.0060 })
-                }}
-              >
-                Use Current Location
-              </button>
-            </div>
-          </div>
-        )
-
-      case 'json':
-        return (
-          <div className="space-y-2">
-            <textarea
-              id={field.name}
-              name={field.name}
-              rows={8}
-              value={formData[field.name] ? JSON.stringify(formData[field.name], null, 2) : ''}
-              onChange={(e) => {
-                try {
-                  const parsed = JSON.parse(e.target.value)
-                  handleInputChange(field.name, parsed)
-                } catch {
-                  // Keep the raw text for now
-                  handleInputChange(field.name, e.target.value)
-                }
-              }}
-              className={`${baseInputClasses} resize-none font-mono text-sm bg-gray-900 text-green-400 border-gray-700`}
-              placeholder='{"key": "value"}'
-            />
-            <div className="text-xs text-gray-500 flex items-center">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-              </svg>
-              JSON format with syntax validation
-            </div>
-          </div>
-        )
-
-      case 'color':
-        return (
-          <div className="flex items-center space-x-3">
-            <input
-              type="color"
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || '#000000'}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className="w-16 h-12 rounded-xl border-2 border-gray-200 cursor-pointer"
-            />
-            <input
-              type="text"
-              value={formData[field.name] || '#000000'}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
-              placeholder="#000000"
-              pattern="^#[0-9A-Fa-f]{6}$"
-            />
-          </div>
-        )
-
+        );
+      
       case 'rating':
         return (
-          <div className="flex items-center space-x-1">
-            {Array.from({ length: field.maxStars || 5 }, (_, i) => i + 1).map((star) => (
-              <button
-                key={star}
-                type="button"
-                onClick={() => handleInputChange(field.name, star)}
-                className={`w-8 h-8 ${
-                  star <= (formData[field.name] || 0) ? 'text-yellow-400' : 'text-gray-300'
-                } hover:text-yellow-400 transition-colors`}
-              >
-                <svg fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              </button>
-            ))}
-            <span className="ml-2 text-sm text-gray-600">
-              {formData[field.name] ? `${formData[field.name]} of ${field.maxStars || 5}` : 'No rating'}
-            </span>
-          </div>
-        )
-
-      case 'tags':
-        return (
-          <div>
-            <input
-              type="text"
-              placeholder="Type and press Enter to add tags"
-              className={baseInputClasses}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                  e.preventDefault()
-                  const currentTags = formData[field.name] || []
-                  const newTag = e.currentTarget.value.trim()
-                  if (!currentTags.includes(newTag)) {
-                    handleInputChange(field.name, [...currentTags, newTag])
-                  }
-                  e.currentTarget.value = ''
-                }
-              }}
-            />
-            <div className="flex flex-wrap gap-2 mt-2">
-              {(formData[field.name] || []).map((tag: string, index: number) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+          <div key={index} className="flex items-center space-x-2">
+            <div className="flex space-x-1">
+              {[...Array(field.maxStars || 5)].map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="text-3xl text-gray-300 hover:text-yellow-400 transition-colors duration-200"
                 >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const tags = formData[field.name] || []
-                      handleInputChange(field.name, tags.filter((_: string, i: number) => i !== index))
-                    }}
-                    className="ml-2 text-blue-600 hover:text-blue-800"
-                  >
-                    ×
-                  </button>
-                </span>
+                  ★
+                </button>
               ))}
             </div>
+            <span className="text-sm text-gray-500 ml-3">AI-Enhanced Rating</span>
           </div>
-        )
-
-      // Layout/Display Fields
-      case 'heading':
+        );
+      
+      case 'select':
         return (
-          <div className="py-4">
-            <h3 className="text-xl font-bold text-gray-900 border-b-2 border-gray-200 pb-2">
-              {field.label}
-            </h3>
-            {field.description && (
-              <p className="text-gray-600 mt-2">{field.description}</p>
-            )}
-          </div>
-        )
-
-      case 'read_only':
-        return (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-            <span className="text-gray-700">
-              {formData[field.name] || field.defaultValue || 'No value set'}
-            </span>
-          </div>
-        )
-
-      case 'button':
-        return (
-          <button
-            type="button"
-            onClick={() => {
-              // Button action simulation
-              alert(`${field.label} button clicked!`)
-            }}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-colors font-medium"
-          >
-            {field.label}
-          </button>
-        )
-
-      case 'icon':
-        return (
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <span className="text-gray-700">{field.label}</span>
-          </div>
-        )
-
-      default:
-        return (
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-            <p className="text-yellow-800">
-              Field type "{field.type}" is not yet implemented.
-            </p>
-          </div>
-        )
-    }
-  }
-
-  if (submitted) {
-    return (
-      <div className="text-center py-12">
-        <div className="mb-6">
-          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-        </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-3">Form Submitted Successfully!</h3>
-        <p className="text-gray-600 mb-6 max-w-md mx-auto">Thank you for your submission. We've received your information and will get back to you soon.</p>
-        <button
-          onClick={handleReset}
-          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-8 rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 font-medium"
-        >
-          Submit Another Response
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {schema.title && (
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">{schema.title}</h2>
-          {schema.description && (
-            <p className="text-gray-600 max-w-2xl mx-auto">{schema.description}</p>
-          )}
-        </div>
-      )}
-
-      <div className="grid gap-6">
-        {schema.fields.map((field) => (
-          <div key={field.name} className="space-y-2">
-            {field.type !== 'checkbox' && field.type !== 'switch' && field.type !== 'heading' && (
-              <label htmlFor={field.name} className="block text-sm font-semibold text-gray-700">
-                {field.label}
-                {field.required && <span className="text-red-500 ml-1">*</span>}
-              </label>
-            )}
-            
-            {field.description && field.type !== 'heading' && (
-              <p className="text-sm text-gray-500 mb-2">{field.description}</p>
-            )}
-            
-            {renderField(field)}
-            
-            {errors[field.name] && (
-              <div className="flex items-center space-x-2 text-sm text-red-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{errors[field.name]}</span>
+          <div key={index} className="relative">
+            <select className={enhancedClasses} required={field.required}>
+              <option value="">Select {field.label}</option>
+              {field.options?.map((option, i) => (
+                <option key={i} value={option}>{option}</option>
+              ))}
+            </select>
+            {field.aiEnhanced?.contextualHelp && (
+              <div className="absolute right-10 top-3">
+                <Brain className="w-5 h-5 text-indigo-500" />
               </div>
             )}
           </div>
-        ))}
+        );
+      
+      case 'multiselect':
+        return (
+          <div key={index} className="space-y-3 p-4 border-2 border-gray-200 rounded-lg">
+            {field.options?.map((option, i) => (
+              <label key={i} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
+                <span className="text-gray-700">{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+      
+      case 'attach':
+        return (
+          <div key={index} className="relative">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
+              <p className="text-sm text-gray-500">Supports: {field.accept || 'All file types'}</p>
+              <input
+                type="file"
+                accept={field.accept}
+                multiple={field.multiple}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                required={field.required}
+              />
+            </div>
+          </div>
+        );
+      
+      case 'signature':
+        return (
+          <div key={index} className="border-2 border-dashed border-blue-300 rounded-lg p-12 text-center bg-blue-50/30">
+            <div className="flex items-center justify-center mb-4">
+              <FileText className="w-8 h-8 text-blue-500 mr-2" />
+              <Lock className="w-6 h-6 text-green-500" />
+            </div>
+            <p className="text-blue-700 font-medium">Secure Digital Signature</p>
+            <p className="text-sm text-blue-600 mt-2">Mexaly-protected with audit trail</p>
+          </div>
+        );
+      
+      case 'geolocation':
+        return (
+          <div key={index} className="border-2 border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-green-100 to-blue-100 h-48 flex items-center justify-center">
+              <div className="text-center">
+                <Map className="w-12 h-12 text-blue-600 mx-auto mb-2" />
+                <p className="text-blue-700 font-medium">Interactive Map</p>
+                <p className="text-sm text-blue-600">AI-Enhanced Location Services</p>
+              </div>
+            </div>
+          </div>
+        );
+      
+      default:
+        return (
+          <input
+            key={index}
+            type="text"
+            placeholder={field.placeholder || field.label}
+            className={enhancedClasses}
+            required={field.required}
+          />
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Mexaly Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Mexaly</h1>
+                  <p className="text-sm text-gray-500">Intelligent Business Solutions</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <Globe className="w-4 h-4" />
+              <span>Enterprise-Grade</span>
+              <Lock className="w-4 h-4 ml-3" />
+              <span>SOC 2 Compliant</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-8 rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-lg flex items-center justify-center"
-        >
-          {isSubmitting ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Submitting...
-            </>
-          ) : (
-            schema.submitText || 'Submit Form'
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={handleReset}
-          className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-500/20 transition-all duration-200 font-semibold"
-        >
-          {schema.resetText || 'Reset Form'}
-        </button>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 text-sm font-medium mb-6">
+            <Bot className="w-4 h-4 mr-2" />
+            AI-Powered Form Intelligence
+          </div>
+          
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            Transform Business with
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block">
+              Intelligent Forms
+            </span>
+          </h1>
+          
+          <p className="text-xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed">
+            Mexaly's AI-powered form builder creates enterprise-grade solutions with intelligent automation, 
+            compliance controls, and seamless integrations. From simple data collection to complex business processes.
+          </p>
+
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-600 mb-8">
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+              Smart Process Automation
+            </div>
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+              Enterprise Security & Compliance
+            </div>
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+              AI-Powered Insights
+            </div>
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+              Seamless Integrations
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex justify-center space-x-2 mb-8">
+          <button
+            onClick={() => setActiveTab('builder')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center ${
+              activeTab === 'builder'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+            }`}
+          >
+            <Wand2 className="w-5 h-5 mr-2" />
+            AI Form Builder
+          </button>
+          <button
+            onClick={() => setActiveTab('preview')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center ${
+              activeTab === 'preview'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+            }`}
+            disabled={!generatedSchema}
+          >
+            <Play className="w-5 h-5 mr-2" />
+            Preview & Deploy
+          </button>
+        </div>
+
+        {activeTab === 'builder' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Business Solutions Selection */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sticky top-6">
+                <h2 className="text-xl font-semibold mb-4 flex items-center">
+                  <Target className="w-5 h-5 mr-2 text-blue-600" />
+                  Business Solution Type
+                </h2>
+                <div className="space-y-3">
+                  {businessSolutions.map((solution) => {
+                    const IconComponent = solution.icon;
+                    return (
+                      <button
+                        key={solution.id}
+                        onClick={() => setSelectedPromptType(solution.id)}
+                        className={`w-full p-4 rounded-lg border-2 transition-all duration-200 ${
+                          selectedPromptType === solution.id
+                            ? 'border-blue-500 bg-blue-50 shadow-md'
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className={`p-2 rounded-lg ${solution.color}`}>
+                            <IconComponent className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <h3 className="font-semibold text-gray-900 mb-1">{solution.name}</h3>
+                            <p className="text-sm text-gray-600 mb-2">{solution.description}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {solution.capabilities.slice(0, 2).map((cap, i) => (
+                                <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                  {cap}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Form Configuration */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                <h2 className="text-xl font-semibold mb-6 flex items-center">
+                  <Brain className="w-5 h-5 mr-2 text-purple-600" />
+                  Intelligent Form Configuration
+                </h2>
+                
+                {/* Business Context */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Business Context (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={businessContext}
+                    onChange={(e) => setBusinessContext(e.target.value)}
+                    placeholder="e.g., Manufacturing company, Healthcare provider, Financial services..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Form Description */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Describe Your Business Process
+                  </label>
+                  <textarea
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    placeholder="Describe your business process in detail. For example: 'Create an employee expense reimbursement form with receipt uploads, approval workflow, integration with accounting system, and automatic budget validation...'"
+                    className="w-full h-48 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                  <div className="mt-2 text-sm text-gray-500">
+                    Be specific about workflows, approvals, integrations, and compliance requirements
+                  </div>
+                </div>
+
+                {/* Advanced Features Toggle */}
+                <div className="mb-6">
+                  <button
+                    onClick={() => setShowAdvancedFeatures(!showAdvancedFeatures)}
+                    className="flex items-center text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Advanced Mexaly Features
+                    <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${showAdvancedFeatures ? 'rotate-90' : ''}`} />
+                  </button>
+                  
+                  {showAdvancedFeatures && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        <label className="flex items-center">
+                          <input type="checkbox" className="mr-2" defaultChecked />
+                          <span className="text-sm">Process Automation</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input type="checkbox" className="mr-2" defaultChecked />
+                          <span className="text-sm">AI Insights</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input type="checkbox" className="mr-2" defaultChecked />
+                          <span className="text-sm">Audit Trails</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input type="checkbox" className="mr-2" defaultChecked />
+                          <span className="text-sm">Role-based Access</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Generate Button */}
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-600">
+                    {selectedPromptType && (
+                      <span className="flex items-center">
+                        <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                        {businessSolutions.find(s => s.id === selectedPromptType)?.name} selected
+                      </span>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={handleGenerate}
+                    disabled={!selectedPromptType || !userInput.trim() || isGenerating}
+                    className={`px-8 py-4 rounded-lg font-medium transition-all duration-200 flex items-center ${
+                      !selectedPromptType || !userInput.trim() || isGenerating
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'
+                    }`}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                        Mexaly AI Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Generate with Mexaly AI
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'preview' && generatedSchema && (
+          <div ref={formRef} className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+            {/* Schema Header */}
+            <div className="mb-8">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900 mb-2">{generatedSchema.title}</h2>
+                  <p className="text-gray-600 text-lg">{generatedSchema.description}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                    ✓ AI Generated
+                  </span>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    Mexaly Enhanced
+                  </span>
+                </div>
+              </div>
+              
+              {/* Mexaly Features Display */}
+              {generatedSchema.mexalyFeatures && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  {generatedSchema.mexalyFeatures.integrations && (
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+                        <Database className="w-4 h-4 mr-2" />
+                        Integrations
+                      </h4>
+                      <div className="space-y-1">
+                        {Object.entries(generatedSchema.mexalyFeatures.integrations).map(([key, enabled]) => (
+                          enabled && (
+                            <span key={key} className="inline-block text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded mr-1">
+                              {key.toUpperCase()}
+                            </span>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {generatedSchema.mexalyFeatures.security && (
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-green-900 mb-2 flex items-center">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Security & Compliance
+                      </h4>
+                      <div className="space-y-1">
+                        {generatedSchema.mexalyFeatures.security.complianceFrameworks.map((framework, i) => (
+                          <span key={i} className="inline-block text-xs bg-green-200 text-green-800 px-2 py-1 rounded mr-1">
+                            {framework}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {generatedSchema.mexalyFeatures.aiInsights && (
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-purple-900 mb-2 flex items-center">
+                        <Brain className="w-4 h-4 mr-2" />
+                        AI Insights
+                      </h4>
+                      <div className="space-y-1">
+                        {generatedSchema.mexalyFeatures.aiInsights.analytics.slice(0, 2).map((analytic, i) => (
+                          <span key={i} className="inline-block text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded mr-1">
+                            {analytic.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Form Preview */}
+            <form className="space-y-8">
+              {generatedSchema.fields.map((field, index) => (
+                <div key={index} className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-800">
+                    {field.label}
+                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                    {field.aiEnhanced && (
+                      <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800">
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        AI Enhanced
+                      </span>
+                    )}
+                  </label>
+                  {field.description && (
+                    <p className="text-sm text-gray-600">{field.description}</p>
+                  )}
+                  {renderField(field, index)}
+                  {field.validation && (
+                    <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                      Validation: {JSON.stringify(field.validation, null, 1)}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              <div className="flex space-x-4 pt-8 border-t border-gray-200">
+                <button
+                  type="submit"
+                  className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg flex items-center"
+                >
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                  {generatedSchema.submitText}
+                </button>
+                <button
+                  type="reset"
+                  className="px-8 py-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                >
+                  {generatedSchema.resetText}
+                </button>
+              </div>
+            </form>
+
+            {/* Workflow Preview */}
+            {generatedSchema.mexalyFeatures?.workflow && (
+              <div className="mt-12 pt-8 border-t border-gray-200">
+                <h3 className="text-2xl font-semibold mb-6 flex items-center">
+                  <GitBranch className="w-6 h-6 mr-3 text-blue-600" />
+                  Intelligent Workflow
+                </h3>
+                <div className="flex space-x-6 overflow-x-auto pb-4">
+                  {generatedSchema.mexalyFeatures.workflow.stages.map((stage, index) => (
+                    <div key={index} className="min-w-80 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                      <div className="flex items-center mb-4">
+                        <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                          {index + 1}
+                        </div>
+                        <h4 className="font-semibold text-gray-900">{stage.name}</h4>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Fields</h5>
+                          <div className="space-y-1">
+                            {stage.fields.map((fieldName, i) => {
+                              const field = generatedSchema.fields.find(f => f.name === fieldName);
+                              return (
+                                <div key={i} className="flex items-center text-sm text-gray-600">
+                                  <CheckCircle className="w-3 h-3 text-green-500 mr-2" />
+                                  {field?.label || fieldName}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        
+                        {stage.approvers && (
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">Approvers</h5>
+                            <div className="space-y-1">
+                              {stage.approvers.map((approver, i) => (
+                                <div key={i} className="flex items-center text-sm text-blue-600">
+                                  <Users className="w-3 h-3 mr-2" />
+                                  {approver.replace(/_/g, ' ')}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {stage.automation && (
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">Automation</h5>
+                            <div className="flex space-x-2">
+                              {stage.automation.email && (
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Email</span>
+                              )}
+                              {stage.automation.webhook && (
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Webhook</span>
+                              )}
+                              {stage.automation.dataSync && (
+                                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Data Sync</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Generated Schema JSON */}
+            <div className="mt-12 pt-8 border-t border-gray-200">
+              <h3 className="text-2xl font-semibold mb-6 flex items-center">
+                <Code className="w-6 h-6 mr-3 text-purple-600" />
+                Mexaly Schema Export
+              </h3>
+              <div className="bg-gray-900 rounded-lg overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 bg-gray-800">
+                  <span className="text-gray-300 text-sm font-medium">schema.json</span>
+                  <button className="text-gray-400 hover:text-white text-sm">Copy</button>
+                </div>
+                <pre className="text-green-400 p-6 overflow-x-auto text-sm leading-relaxed">
+                  {JSON.stringify(generatedSchema, null, 2)}
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mexaly Platform Features */}
+        <div className="mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            {
+              icon: Workflow,
+              title: 'Smart Automation',
+              description: 'Reduce manual tasks by up to 80% with intelligent process automation',
+              color: 'from-blue-500 to-blue-600'
+            },
+            {
+              icon: Shield,
+              title: 'Enterprise Security',
+              description: 'SOC 2, HIPAA, GDPR compliant with advanced threat protection',
+              color: 'from-red-500 to-red-600'
+            },
+            {
+              icon: BarChart3,
+              title: 'AI Insights',
+              description: 'Predictive analytics and real-time monitoring with ML-powered insights',
+              color: 'from-purple-500 to-purple-600'
+            },
+            {
+              icon: Globe,
+              title: 'Seamless Integration',
+              description: 'Connect with existing systems via comprehensive API ecosystem',
+              color: 'from-green-500 to-green-600'
+            }
+          ].map((feature, index) => {
+            const IconComponent = feature.icon;
+            return (
+              <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow duration-200">
+                <div className={`w-12 h-12 bg-gradient-to-r ${feature.color} rounded-lg flex items-center justify-center mb-4`}>
+                  <IconComponent className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-600 text-sm">{feature.description}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Business Outcomes */}
+        <div className="mt-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-2xl p-8 text-white">
+          <div className="text-center mb-8">
+            <h3 className="text-3xl font-bold mb-4">Proven Business Outcomes</h3>
+            <p className="text-xl opacity-90">Transform your organization with Mexaly's intelligent platform</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { metric: '80%', label: 'Reduction in Manual Tasks', icon: Clock },
+              { metric: '60%', label: 'Faster Time-to-Market', icon: TrendingUp },
+              { metric: '40%', label: 'Cost Optimization', icon: DollarSign },
+              { metric: '99.9%', label: 'System Reliability', icon: Shield }
+            ].map((outcome, index) => {
+              const IconComponent = outcome.icon;
+              return (
+                <div key={index} className="text-center">
+                  <IconComponent className="w-8 h-8 mx-auto mb-3 opacity-90" />
+                  <div className="text-3xl font-bold mb-1">{outcome.metric}</div>
+                  <div className="text-sm opacity-90">{outcome.label}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
-    </form>
-  )
-}
+    </div>
+  );
+};
+
+export default MexalyAIFormBuilder;

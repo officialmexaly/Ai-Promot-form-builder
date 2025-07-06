@@ -1,30 +1,20 @@
-'use client'
+"use client"
 
-import { useState, useRef, useEffect } from 'react'
-import DynamicForm from '@/components/DynamicForm'
+import React, { useState, useRef, useEffect } from 'react';
+import { Sparkles, Brain, Database, FileText, Building, DollarSign, Users, Shield, Calendar, Map, Code, Zap, Workflow, Bot, Target, Globe, Lock, TrendingUp, ChevronRight, Play, Wand2, Settings, GitBranch, BarChart3, Clock, CheckCircle, ArrowRight } from 'lucide-react';
 
 interface Field {
   name: string;
   label: string;
-  type: 
-    // Basic Data Types
-    'data' | 'small_text' | 'long_text' | 'text' | 'markdown' | 'html' | 'code' |
-    // Numeric Types  
-    'int' | 'float' | 'currency' | 'percent' | 'rating' |
-    // Date & Time
-    'date' | 'datetime' | 'time' | 'duration' |
-    // Relationships
-    'link' | 'dynamic_link' | 'table' | 'table_multiselect' |
-    // Choice
-    'select' | 'autocomplete' | 'multiselect' | 'radio' | 'checkbox' |
-    // Files & Media
-    'attach' | 'attach_image' | 'image' | 'signature' | 'barcode' |
-    // Visual/Layout/UI
-    'color' | 'heading' | 'button' | 'read_only' | 'icon' |
-    // Specialized
-    'geolocation' | 'json' | 'password' | 'phone' | 'email' | 'url' |
-    // Additional Web Types
-    'number' | 'range' | 'search' | 'switch' | 'tags' | 'file';
+  type: 'data' | 'small_text' | 'long_text' | 'text' | 'markdown' | 'html' | 'code' |
+        'int' | 'float' | 'currency' | 'percent' | 'rating' |
+        'date' | 'datetime' | 'time' | 'duration' |
+        'link' | 'dynamic_link' | 'table' | 'table_multiselect' |
+        'select' | 'autocomplete' | 'multiselect' | 'radio' | 'checkbox' |
+        'attach' | 'attach_image' | 'image' | 'signature' | 'barcode' |
+        'color' | 'heading' | 'button' | 'read_only' | 'icon' |
+        'geolocation' | 'json' | 'password' | 'phone' | 'email' | 'url' |
+        'number' | 'range' | 'search' | 'switch' | 'tags' | 'file';
   required?: boolean;
   options?: string[];
   placeholder?: string;
@@ -53,437 +43,1184 @@ interface Field {
     fileSize?: string;
     fileTypes?: string[];
   };
+  conditional?: {
+    dependsOn: string;
+    value: any;
+    operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'in';
+  };
+  aiEnhanced?: {
+    autoComplete?: boolean;
+    smartValidation?: boolean;
+    predictiveText?: boolean;
+    contextualHelp?: boolean;
+  };
 }
 
 interface Schema {
-  title?: string;
-  description?: string;
+  title: string;
+  description: string;
+  category: string;
   fields: Field[];
-  submitText?: string;
-  resetText?: string;
+  submitText: string;
+  resetText: string;
+  mexalyFeatures?: {
+    processAutomation?: {
+      enabled: boolean;
+      triggers: string[];
+      actions: string[];
+    };
+    aiInsights?: {
+      enabled: boolean;
+      analytics: string[];
+      predictions: string[];
+    };
+    integrations?: {
+      erp: boolean;
+      crm: boolean;
+      accounting: boolean;
+      hr: boolean;
+      compliance: boolean;
+      analytics: boolean;
+    };
+    security?: {
+      encryption: boolean;
+      auditTrail: boolean;
+      roleBasedAccess: boolean;
+      complianceFrameworks: string[];
+    };
+    workflow?: {
+      stages: Array<{
+        name: string;
+        fields: string[];
+        approvers?: string[];
+        conditions?: Array<{
+          field: string;
+          operator: string;
+          value: any;
+        }>;
+        automation?: {
+          email: boolean;
+          webhook: boolean;
+          dataSync: boolean;
+        };
+      }>;
+    };
+  };
 }
 
-const examplePrompts = [
-  {
-    title: "Enterprise CRM Lead Form",
-    description: "Complete customer relationship management form",
-    prompt: "Create a comprehensive CRM lead form with contact details (data for name, email, phone), company information (link to existing companies, data for company name), lead qualification (rating for lead score, select for source like 'Website', 'Cold Call', 'Referral'), financial details (currency for expected deal value, percent for probability), timeline (date for expected close date), and engagement tracking (table for interaction history, multiselect for interests, long_text for notes)"
-  },
-  {
-    title: "Medical Patient Registration",
-    description: "Healthcare patient onboarding system",
-    prompt: "Design a patient registration form including personal information (data for full name, email, phone, date for birth date), medical details (small_text for current medications, multiselect for known allergies, rating for pain level), insurance information (link to insurance providers, data for policy number), emergency contact (data for contact name, phone for emergency number), and medical history (long_text for previous conditions, table for past surgeries with dates)"
-  },
-  {
-    title: "E-commerce Product Catalog",
-    description: "Complete product management form",
-    prompt: "Build a product catalog form with basic details (data for product name, long_text for description, currency for price, int for stock quantity), categorization (multiselect for categories, tags for product keywords), media management (attach_image for main product photo, attach for product manual), specifications (json for technical specs, table for variants with size and color), availability (switch for active status, date for launch date), and SEO (small_text for meta description)"
-  },
-  {
-    title: "Project Management System",
-    description: "Comprehensive project tracking form",
-    prompt: "Create a project management form with project basics (data for project name, markdown for description, link to client), timeline (date for start date, date for end date, duration for estimated hours), team assignment (table_multiselect for team members, link to project manager), progress tracking (percent for completion, rating for client satisfaction), budget management (currency for budget, currency for actual cost), and documentation (attach for project files, json for custom fields)"
-  },
-  {
-    title: "Event Registration & Planning",
-    description: "Complete event management system",
-    prompt: "Generate an event registration form including event details (data for event name, datetime for event date and time, geolocation for venue location), attendee information (data for full name, email, phone), preferences (multiselect for dietary restrictions, select for t-shirt size, radio for attendance type like 'In-person' or 'Virtual'), special requirements (checkbox for accessibility needs, long_text for special requests), payment (currency for registration fee, select for payment method), and confirmation (signature for agreement, barcode for ticket)"
-  },
-  {
-    title: "Employee Onboarding Portal",
-    description: "HR employee management system",
-    prompt: "Design an employee onboarding form with personal details (data for full name, email, phone, date for start date), employment information (select for department, select for position, currency for salary, link to reporting manager), documents (attach for resume, attach for ID copy, signature for employment agreement), system access (data for preferred username, password for temporary password), benefits (multiselect for benefit selections, percent for retirement contribution), and profile (attach_image for profile photo, small_text for bio)"
-  },
-  {
-    title: "Financial Loan Application",
-    description: "Banking and finance application form",
-    prompt: "Create a loan application form including applicant information (data for full name, email, phone, date for date of birth), financial details (currency for requested amount, currency for annual income, select for employment type, int for credit score), loan specifics (select for loan type like 'Personal', 'Auto', 'Home', duration for loan term, percent for preferred interest rate), documentation (attach for income proof, attach for bank statements, signature for application consent), and verification (json for additional financial data, barcode for application tracking)"
-  },
-  {
-    title: "Academic Course Management",
-    description: "Educational institution management",
-    prompt: "Build a course management form with course details (data for course title, code for course code, markdown for course description, link to instructor), scheduling (datetime for class times, duration for class duration, int for credit hours), enrollment (int for max students, currency for course fee, multiselect for prerequisites), assessment (table for assignments with due dates, percent for passing grade, rating for difficulty level), resources (attach for syllabus, attach for reading materials), and administration (switch for active status, json for custom course metadata)"
-  }
-]
+const MexalyAIFormBuilder = () => {
+  const [selectedPromptType, setSelectedPromptType] = useState('');
+  const [businessContext, setBusinessContext] = useState('');
+  const [userInput, setUserInput] = useState('');
+  const [generatedSchema, setGeneratedSchema] = useState<Schema | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState('builder');
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
-export default function Home() {
-  const [prompt, setPrompt] = useState('')
-  const [schema, setSchema] = useState<Schema | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [showExamples, setShowExamples] = useState(true)
-  const formRef = useRef<HTMLDivElement>(null)
-
-  const handleGenerateForm = async () => {
-    if (!prompt.trim()) {
-      setError('Please enter a prompt to generate your form')
-      return
+  const businessSolutions = [
+    {
+      id: 'process_automation',
+      name: 'Process Automation',
+      icon: Workflow,
+      color: 'bg-blue-600',
+      description: 'Intelligent workflows that eliminate manual tasks',
+      capabilities: ['Smart Routing', 'Auto-approval', 'Data Validation', 'Exception Handling'],
+      examples: ['Employee Onboarding', 'Purchase Requests', 'Invoice Processing', 'Quality Control']
+    },
+    {
+      id: 'compliance_governance',
+      name: 'Compliance & Governance',
+      icon: Shield,
+      color: 'bg-red-600',
+      description: 'Automated compliance with audit trails and controls',
+      capabilities: ['Audit Trails', 'Role-based Access', 'Data Privacy', 'Regulatory Reporting'],
+      examples: ['KYC Forms', 'Risk Assessments', 'Compliance Checklists', 'Incident Reports']
+    },
+    {
+      id: 'data_intelligence',
+      name: 'Data Intelligence',
+      icon: BarChart3,
+      color: 'bg-purple-600',
+      description: 'AI-powered insights and predictive analytics',
+      capabilities: ['Predictive Analytics', 'Anomaly Detection', 'Real-time Dashboards', 'ML Insights'],
+      examples: ['Performance Reviews', 'Customer Surveys', 'Financial Planning', 'Market Research']
+    },
+    {
+      id: 'customer_experience',
+      name: 'Customer Experience',
+      icon: Users,
+      color: 'bg-green-600',
+      description: 'Omnichannel experiences with personalization',
+      capabilities: ['Personalization', 'Multi-channel', 'Journey Mapping', 'Feedback Loops'],
+      examples: ['Service Requests', 'Product Registration', 'Support Tickets', 'Feedback Forms']
+    },
+    {
+      id: 'financial_operations',
+      name: 'Financial Operations',
+      icon: DollarSign,
+      color: 'bg-orange-600',
+      description: 'Integrated financial processes with real-time controls',
+      capabilities: ['Real-time Validation', 'Integration APIs', 'Fraud Detection', 'Cost Analytics'],
+      examples: ['Expense Reports', 'Budget Requests', 'Vendor Applications', 'Invoice Approvals']
+    },
+    {
+      id: 'enterprise_integration',
+      name: 'Enterprise Integration',
+      icon: Globe,
+      color: 'bg-indigo-600',
+      description: 'Seamless connectivity with existing enterprise systems',
+      capabilities: ['API Integration', 'Data Sync', 'SSO Authentication', 'Legacy Systems'],
+      examples: ['System Onboarding', 'Data Migration', 'API Configurations', 'Integration Testing']
     }
+  ];
 
-    setLoading(true)
-    setError('')
-    setShowExamples(false)
-
-    try {
-      const response = await fetch('/api/generate-schema', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+  const intelligentPromptBuilder = (category: string, context: string, description: string) => {
+    const categoryConfigs = {
+      process_automation: {
+        focusAreas: ['workflow_efficiency', 'task_automation', 'approval_chains', 'exception_handling'],
+        aiFeatures: {
+          smartRouting: true,
+          autoValidation: true,
+          predictiveFields: true,
+          contextualHelp: true
         },
-        body: JSON.stringify({ prompt }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+        standardFields: {
+          requestor: { type: 'link', target: 'User' },
+          priority: { type: 'select', options: ['Low', 'Medium', 'High', 'Critical'] },
+          deadline: { type: 'datetime' },
+          approval_status: { type: 'select', options: ['Pending', 'Approved', 'Rejected', 'On Hold'] }
+        },
+        mexalyIntegrations: {
+          processAutomation: true,
+          aiInsights: true,
+          workflow: true
+        }
+      },
+      compliance_governance: {
+        focusAreas: ['regulatory_compliance', 'audit_trails', 'risk_management', 'data_governance'],
+        aiFeatures: {
+          complianceCheck: true,
+          riskScoring: true,
+          auditGeneration: true,
+          regulatoryUpdates: true
+        },
+        standardFields: {
+          compliance_officer: { type: 'link', target: 'User' },
+          risk_level: { type: 'rating', maxStars: 5 },
+          regulatory_framework: { type: 'multiselect', options: ['SOX', 'GDPR', 'HIPAA', 'ISO27001'] },
+          audit_signature: { type: 'signature' }
+        },
+        mexalyIntegrations: {
+          security: true,
+          auditTrail: true,
+          compliance: true
+        }
+      },
+      data_intelligence: {
+        focusAreas: ['analytics', 'insights', 'predictions', 'reporting'],
+        aiFeatures: {
+          predictiveAnalytics: true,
+          anomalyDetection: true,
+          naturalLanguageQuery: true,
+          autoInsights: true
+        },
+        standardFields: {
+          metric_type: { type: 'select', options: ['KPI', 'Metric', 'Dimension', 'Measure'] },
+          data_source: { type: 'link', target: 'DataSource' },
+          frequency: { type: 'select', options: ['Real-time', 'Hourly', 'Daily', 'Weekly', 'Monthly'] },
+          visualization: { type: 'multiselect', options: ['Chart', 'Table', 'Dashboard', 'Report'] }
+        },
+        mexalyIntegrations: {
+          aiInsights: true,
+          analytics: true,
+          predictiveModels: true
+        }
+      },
+      customer_experience: {
+        focusAreas: ['customer_journey', 'personalization', 'multichannel', 'satisfaction'],
+        aiFeatures: {
+          personalizedExperience: true,
+          sentimentAnalysis: true,
+          chatbotIntegration: true,
+          behaviorPrediction: true
+        },
+        standardFields: {
+          customer_id: { type: 'link', target: 'Customer' },
+          interaction_channel: { type: 'select', options: ['Web', 'Mobile', 'Email', 'Phone', 'Chat'] },
+          satisfaction_score: { type: 'rating', maxStars: 10 },
+          journey_stage: { type: 'select', options: ['Awareness', 'Consideration', 'Purchase', 'Retention'] }
+        },
+        mexalyIntegrations: {
+          crm: true,
+          customerInsights: true,
+          omnichannel: true
+        }
+      },
+      financial_operations: {
+        focusAreas: ['financial_control', 'cost_management', 'fraud_prevention', 'compliance'],
+        aiFeatures: {
+          fraudDetection: true,
+          costOptimization: true,
+          predictiveBudgeting: true,
+          riskAssessment: true
+        },
+        standardFields: {
+          amount: { type: 'currency', currency: 'USD' },
+          cost_center: { type: 'link', target: 'CostCenter' },
+          budget_category: { type: 'select', options: ['OPEX', 'CAPEX', 'Revenue', 'Investment'] },
+          approval_limit: { type: 'currency', currency: 'USD' }
+        },
+        mexalyIntegrations: {
+          accounting: true,
+          erp: true,
+          fraudDetection: true
+        }
+      },
+      enterprise_integration: {
+        focusAreas: ['system_connectivity', 'data_sync', 'api_management', 'legacy_modernization'],
+        aiFeatures: {
+          autoMapping: true,
+          dataTransformation: true,
+          errorPrediction: true,
+          performanceOptimization: true
+        },
+        standardFields: {
+          system_name: { type: 'data' },
+          integration_type: { type: 'select', options: ['API', 'Database', 'File', 'Message Queue'] },
+          data_format: { type: 'select', options: ['JSON', 'XML', 'CSV', 'Binary'] },
+          sync_frequency: { type: 'select', options: ['Real-time', 'Batch', 'Scheduled', 'Event-driven'] }
+        },
+        mexalyIntegrations: {
+          apiGateway: true,
+          dataHub: true,
+          systemConnectors: true
+        }
       }
+    };
 
-      const data = await response.json()
-      
-      if (data.error) {
-        throw new Error(data.error)
+    const config = categoryConfigs[category as keyof typeof categoryConfigs];
+    if (!config) return null;
+
+    // AI-powered field generation based on context and description
+    const contextTerms = context.toLowerCase().split(' ');
+    const descTerms = description.toLowerCase().split(' ');
+    const allTerms = [...contextTerms, ...descTerms];
+
+    const relevantFields = Object.keys(config.standardFields).filter(field => {
+      const fieldTerms = field.toLowerCase().split('_');
+      return fieldTerms.some(term => allTerms.includes(term)) || 
+             allTerms.some(term => field.toLowerCase().includes(term));
+    });
+
+    // Generate intelligent field mapping
+    const fields: Field[] = relevantFields.map(fieldName => {
+      const fieldConfig = config.standardFields[fieldName as keyof typeof config.standardFields];
+      return {
+        name: fieldName,
+        label: fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        type: fieldConfig.type as any,
+        required: config.focusAreas.some(area => fieldName.includes(area.split('_')[0])),
+        ...(fieldConfig.options && { options: fieldConfig.options }),
+        ...(fieldConfig.currency && { currency: fieldConfig.currency }),
+        ...(fieldConfig.maxStars && { maxStars: fieldConfig.maxStars }),
+        ...(fieldConfig.target && { targetDocType: fieldConfig.target }),
+        aiEnhanced: {
+          autoComplete: config.aiFeatures.predictiveFields || false,
+          smartValidation: config.aiFeatures.autoValidation || false,
+          predictiveText: config.aiFeatures.predictiveFields || false,
+          contextualHelp: config.aiFeatures.contextualHelp || false
+        }
+      };
+    });
+
+    // Add context-specific fields based on description analysis
+    const additionalFields = generateContextualFields(description, category);
+    fields.push(...additionalFields);
+
+    const mexalyFeatures = {
+      processAutomation: {
+        enabled: config.mexalyIntegrations.processAutomation || false,
+        triggers: ['form_submit', 'field_change', 'approval_required'],
+        actions: ['send_notification', 'update_record', 'trigger_workflow']
+      },
+      aiInsights: {
+        enabled: config.mexalyIntegrations.aiInsights || false,
+        analytics: ['completion_rate', 'field_accuracy', 'user_behavior'],
+        predictions: ['approval_likelihood', 'completion_time', 'error_probability']
+      },
+      integrations: {
+        erp: config.mexalyIntegrations.erp || false,
+        crm: config.mexalyIntegrations.crm || false,
+        accounting: config.mexalyIntegrations.accounting || false,
+        hr: category === 'process_automation',
+        compliance: config.mexalyIntegrations.compliance || false,
+        analytics: config.mexalyIntegrations.analytics || false
+      },
+      security: {
+        encryption: true,
+        auditTrail: config.mexalyIntegrations.auditTrail || false,
+        roleBasedAccess: true,
+        complianceFrameworks: category === 'compliance_governance' ? 
+          ['SOC2', 'GDPR', 'HIPAA', 'ISO27001'] : ['SOC2']
+      },
+      workflow: generateIntelligentWorkflow(category, fields)
+    };
+
+    return {
+      title: `${config.focusAreas[0].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Form`,
+      description: description,
+      category: category,
+      fields: fields,
+      submitText: 'Process with Mexaly AI',
+      resetText: 'Reset',
+      mexalyFeatures: mexalyFeatures
+    };
+  };
+
+  const generateContextualFields = (description: string, category: string): Field[] => {
+    const additionalFields: Field[] = [];
+    const desc = description.toLowerCase();
+
+    // Smart field detection based on keywords
+    if (desc.includes('document') || desc.includes('file') || desc.includes('upload')) {
+      additionalFields.push({
+        name: 'supporting_documents',
+        label: 'Supporting Documents',
+        type: 'attach',
+        multiple: true,
+        accept: '.pdf,.doc,.docx,.xls,.xlsx',
+        aiEnhanced: {
+          autoComplete: false,
+          smartValidation: true,
+          predictiveText: false,
+          contextualHelp: true
+        }
+      });
+    }
+
+    if (desc.includes('location') || desc.includes('address') || desc.includes('map')) {
+      additionalFields.push({
+        name: 'location',
+        label: 'Location',
+        type: 'geolocation',
+        mapType: 'roadmap',
+        aiEnhanced: {
+          autoComplete: true,
+          smartValidation: true,
+          predictiveText: false,
+          contextualHelp: true
+        }
+      });
+    }
+
+    if (desc.includes('signature') || desc.includes('approval') || desc.includes('sign')) {
+      additionalFields.push({
+        name: 'digital_signature',
+        label: 'Digital Signature',
+        type: 'signature',
+        required: true,
+        aiEnhanced: {
+          autoComplete: false,
+          smartValidation: true,
+          predictiveText: false,
+          contextualHelp: true
+        }
+      });
+    }
+
+    if (desc.includes('comment') || desc.includes('note') || desc.includes('feedback')) {
+      additionalFields.push({
+        name: 'comments',
+        label: 'Comments',
+        type: 'long_text',
+        placeholder: 'Enter additional comments or notes...',
+        aiEnhanced: {
+          autoComplete: true,
+          smartValidation: false,
+          predictiveText: true,
+          contextualHelp: true
+        }
+      });
+    }
+
+    return additionalFields;
+  };
+
+  const generateIntelligentWorkflow = (category: string, fields: Field[]) => {
+    const workflowTemplates: Record<string, any> = {
+      process_automation: {
+        stages: [
+          { 
+            name: 'Initiation', 
+            fields: fields.slice(0, Math.ceil(fields.length / 3)).map(f => f.name),
+            automation: { email: true, webhook: false, dataSync: true }
+          },
+          { 
+            name: 'Review', 
+            fields: fields.slice(Math.ceil(fields.length / 3), Math.ceil(2 * fields.length / 3)).map(f => f.name),
+            approvers: ['manager', 'department_head'],
+            automation: { email: true, webhook: true, dataSync: true }
+          },
+          { 
+            name: 'Approval', 
+            fields: fields.slice(Math.ceil(2 * fields.length / 3)).map(f => f.name),
+            approvers: ['executive'],
+            automation: { email: true, webhook: true, dataSync: true }
+          }
+        ]
+      },
+      compliance_governance: {
+        stages: [
+          { 
+            name: 'Documentation', 
+            fields: fields.filter(f => f.type === 'attach' || f.type === 'long_text').map(f => f.name),
+            automation: { email: true, webhook: false, dataSync: true }
+          },
+          { 
+            name: 'Compliance Review', 
+            fields: fields.filter(f => f.name.includes('compliance') || f.name.includes('risk')).map(f => f.name),
+            approvers: ['compliance_officer'],
+            automation: { email: true, webhook: true, dataSync: true }
+          },
+          { 
+            name: 'Final Approval', 
+            fields: fields.filter(f => f.type === 'signature').map(f => f.name),
+            approvers: ['legal_team'],
+            automation: { email: true, webhook: true, dataSync: true }
+          }
+        ]
       }
+    };
 
-      setSchema(data.schema)
+    return workflowTemplates[category] || {
+      stages: [
+        { 
+          name: 'Submission', 
+          fields: fields.map(f => f.name),
+          automation: { email: true, webhook: false, dataSync: true }
+        }
+      ]
+    };
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedPromptType || !userInput.trim()) return;
+
+    setIsGenerating(true);
+    
+    try {
+      // Simulate AI processing with Mexaly intelligence
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Smooth scroll to form after generation
+      const schema = intelligentPromptBuilder(selectedPromptType, businessContext, userInput);
+      setGeneratedSchema(schema);
+      setActiveTab('preview');
+      
+      // Scroll to results
       setTimeout(() => {
-        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 100)
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    } catch (error) {
+      console.error('Generation error:', error);
     } finally {
-      setLoading(false)
+      setIsGenerating(false);
     }
-  }
+  };
 
-  const handleClearForm = () => {
-    setSchema(null)
-    setPrompt('')
-    setError('')
-    setShowExamples(true)
-  }
-
-  const handleExampleClick = (examplePrompt: string) => {
-    setPrompt(examplePrompt)
-    setShowExamples(false)
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      handleGenerateForm()
-    }
-  }
-
-  useEffect(() => {
-    // Add keyboard shortcut listener
-    const handleGlobalKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !loading) {
-        e.preventDefault()
-        handleGenerateForm()
-      }
-    }
-
-    document.addEventListener('keydown', handleGlobalKeyPress)
-    return () => document.removeEventListener('keydown', handleGlobalKeyPress)
-  }, [loading, prompt])
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
-          <div className="text-center">
-            <div className="mb-8">
-              <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-800 text-sm font-medium mb-6">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Powered by Advanced AI
+  const renderField = (field: Field, index: number) => {
+    const inputClasses = "w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200";
+    const enhancedClasses = field.aiEnhanced?.smartValidation ? 
+      `${inputClasses} border-blue-300 bg-blue-50/30` : inputClasses;
+    
+    switch (field.type) {
+      case 'data':
+      case 'email':
+      case 'url':
+      case 'phone':
+        return (
+          <div key={index} className="relative">
+            <input
+              type={field.type === 'data' ? 'text' : field.type}
+              placeholder={field.placeholder || field.label}
+              className={enhancedClasses}
+              required={field.required}
+            />
+            {field.aiEnhanced?.autoComplete && (
+              <div className="absolute right-3 top-3">
+                <Bot className="w-5 h-5 text-blue-500" />
+              </div>
+            )}
+          </div>
+        );
+      
+      case 'small_text':
+      case 'long_text':
+        return (
+          <div key={index} className="relative">
+            <textarea
+              rows={field.type === 'small_text' ? 3 : 6}
+              placeholder={field.placeholder || field.label}
+              className={enhancedClasses}
+              required={field.required}
+            />
+            {field.aiEnhanced?.predictiveText && (
+              <div className="absolute right-3 top-3">
+                <Wand2 className="w-5 h-5 text-purple-500" />
+              </div>
+            )}
+          </div>
+        );
+      
+      case 'currency':
+        return (
+          <div key={index} className="relative">
+            <span className="absolute left-4 top-3 text-gray-500 font-medium">
+              {field.currency || 'USD'}
+            </span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              className={`${enhancedClasses} pl-16`}
+              required={field.required}
+            />
+            <div className="absolute right-3 top-3">
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            </div>
+          </div>
+        );
+      
+      case 'rating':
+        return (
+          <div key={index} className="flex items-center space-x-2">
+            <div className="flex space-x-1">
+              {[...Array(field.maxStars || 5)].map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="text-3xl text-gray-300 hover:text-yellow-400 transition-colors duration-200"
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <span className="text-sm text-gray-500 ml-3">AI-Enhanced Rating</span>
+          </div>
+        );
+      
+      case 'select':
+        return (
+          <div key={index} className="relative">
+            <select className={enhancedClasses} required={field.required}>
+              <option value="">Select {field.label}</option>
+              {field.options?.map((option, i) => (
+                <option key={i} value={option}>{option}</option>
+              ))}
+            </select>
+            {field.aiEnhanced?.contextualHelp && (
+              <div className="absolute right-10 top-3">
+                <Brain className="w-5 h-5 text-indigo-500" />
+              </div>
+            )}
+          </div>
+        );
+      
+      case 'multiselect':
+        return (
+          <div key={index} className="space-y-3 p-4 border-2 border-gray-200 rounded-lg">
+            {field.options?.map((option, i) => (
+              <label key={i} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
+                <span className="text-gray-700">{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+      
+      case 'attach':
+        return (
+          <div key={index} className="relative">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
+              <p className="text-sm text-gray-500">Supports: {field.accept || 'All file types'}</p>
+              <input
+                type="file"
+                accept={field.accept}
+                multiple={field.multiple}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                required={field.required}
+              />
+            </div>
+          </div>
+        );
+      
+      case 'signature':
+        return (
+          <div key={index} className="border-2 border-dashed border-blue-300 rounded-lg p-12 text-center bg-blue-50/30">
+            <div className="flex items-center justify-center mb-4">
+              <FileText className="w-8 h-8 text-blue-500 mr-2" />
+              <Lock className="w-6 h-6 text-green-500" />
+            </div>
+            <p className="text-blue-700 font-medium">Secure Digital Signature</p>
+            <p className="text-sm text-blue-600 mt-2">Mexaly-protected with audit trail</p>
+          </div>
+        );
+      
+      case 'geolocation':
+        return (
+          <div key={index} className="border-2 border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-green-100 to-blue-100 h-48 flex items-center justify-center">
+              <div className="text-center">
+                <Map className="w-12 h-12 text-blue-600 mx-auto mb-2" />
+                <p className="text-blue-700 font-medium">Interactive Map</p>
+                <p className="text-sm text-blue-600">AI-Enhanced Location Services</p>
               </div>
             </div>
-            
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              AI Form Builder
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block">
-                Beyond Imagination
-              </span>
-            </h1>
-            
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Transform your ideas into beautiful, functional forms instantly. Just describe what you need in natural language, and watch our AI create professional forms with advanced field types and intelligent validation.
-            </p>
+          </div>
+        );
+      
+      default:
+        return (
+          <input
+            key={index}
+            type="text"
+            placeholder={field.placeholder || field.label}
+            className={enhancedClasses}
+            required={field.required}
+          />
+        );
+    }
+  };
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-500">
-              <div className="flex items-center">
-                <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                20+ Field Types
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Mexaly Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Mexaly</h1>
+                  <p className="text-sm text-gray-500">Intelligent Business Solutions</p>
+                </div>
               </div>
-              <div className="flex items-center">
-                <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Smart Validation
-              </div>
-              <div className="flex items-center">
-                <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Instant Generation
-              </div>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <Globe className="w-4 h-4" />
+              <span>Enterprise-Grade</span>
+              <Lock className="w-4 h-4 ml-3" />
+              <span>SOC 2 Compliant</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        {/* Prompt Input Section */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-12 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 text-sm font-medium mb-6">
+            <Bot className="w-4 h-4 mr-2" />
+            AI-Powered Form Intelligence
+          </div>
           
-          <div className="mb-6">
-            <label htmlFor="prompt" className="block text-lg font-semibold text-gray-900 mb-3">
-              Describe Your Form
-            </label>
-            <div className="relative">
-              <textarea
-                id="prompt"
-                rows={6}
-                className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 resize-none text-gray-700 placeholder-gray-400 transition-all duration-200"
-                placeholder="Example: Create a comprehensive job application form with personal details, professional experience, file uploads for resume and cover letter, skill tags, salary expectations, and availability preferences..."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={handleKeyPress}
-                disabled={loading}
-              />
-              <div className="absolute bottom-4 right-4 text-xs text-gray-400">
-                {prompt.length}/2000 • Cmd/Ctrl + Enter to generate
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            Transform Business with
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block">
+              Intelligent Forms
+            </span>
+          </h1>
+          
+          <p className="text-xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed">
+            Mexaly's AI-powered form builder creates enterprise-grade solutions with intelligent automation, 
+            compliance controls, and seamless integrations. From simple data collection to complex business processes.
+          </p>
+
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-600 mb-8">
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+              Smart Process Automation
+            </div>
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+              Enterprise Security & Compliance
+            </div>
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+              AI-Powered Insights
+            </div>
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+              Seamless Integrations
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex justify-center space-x-2 mb-8">
+          <button
+            onClick={() => setActiveTab('builder')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center ${
+              activeTab === 'builder'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+            }`}
+          >
+            <Wand2 className="w-5 h-5 mr-2" />
+            AI Form Builder
+          </button>
+          <button
+            onClick={() => setActiveTab('preview')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center ${
+              activeTab === 'preview'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+            }`}
+            disabled={!generatedSchema}
+          >
+            <Play className="w-5 h-5 mr-2" />
+            Preview & Deploy
+          </button>
+        </div>
+
+        {activeTab === 'builder' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Business Solutions Selection */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sticky top-6">
+                <h2 className="text-xl font-semibold mb-4 flex items-center">
+                  <Target className="w-5 h-5 mr-2 text-blue-600" />
+                  Business Solution Type
+                </h2>
+                <div className="space-y-3">
+                  {businessSolutions.map((solution) => {
+                    const IconComponent = solution.icon;
+                    return (
+                      <button
+                        key={solution.id}
+                        onClick={() => setSelectedPromptType(solution.id)}
+                        className={`w-full p-4 rounded-lg border-2 transition-all duration-200 ${
+                          selectedPromptType === solution.id
+                            ? 'border-blue-500 bg-blue-50 shadow-md'
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className={`p-2 rounded-lg ${solution.color}`}>
+                            <IconComponent className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <h3 className="font-semibold text-gray-900 mb-1">{solution.name}</h3>
+                            <p className="text-sm text-gray-600 mb-2">{solution.description}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {solution.capabilities.slice(0, 2).map((cap, i) => (
+                                <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                  {cap}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Form Configuration */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                <h2 className="text-xl font-semibold mb-6 flex items-center">
+                  <Brain className="w-5 h-5 mr-2 text-purple-600" />
+                  Intelligent Form Configuration
+                </h2>
+                
+                {/* Business Context */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Business Context (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={businessContext}
+                    onChange={(e) => setBusinessContext(e.target.value)}
+                    placeholder="e.g., Manufacturing company, Healthcare provider, Financial services..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Form Description */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Describe Your Business Process
+                  </label>
+                  <textarea
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    placeholder="Describe your business process in detail. For example: 'Create an employee expense reimbursement form with receipt uploads, approval workflow, integration with accounting system, and automatic budget validation...'"
+                    className="w-full h-48 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                  <div className="mt-2 text-sm text-gray-500">
+                    Be specific about workflows, approvals, integrations, and compliance requirements
+                  </div>
+                </div>
+
+                {/* Advanced Features Toggle */}
+                <div className="mb-6">
+                  <button
+                    onClick={() => setShowAdvancedFeatures(!showAdvancedFeatures)}
+                    className="flex items-center text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Advanced Mexaly Features
+                    <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${showAdvancedFeatures ? 'rotate-90' : ''}`} />
+                  </button>
+                  
+                  {showAdvancedFeatures && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        <label className="flex items-center">
+                          <input type="checkbox" className="mr-2" defaultChecked />
+                          <span className="text-sm">Process Automation</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input type="checkbox" className="mr-2" defaultChecked />
+                          <span className="text-sm">AI Insights</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input type="checkbox" className="mr-2" defaultChecked />
+                          <span className="text-sm">Audit Trails</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input type="checkbox" className="mr-2" defaultChecked />
+                          <span className="text-sm">Role-based Access</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Generate Button */}
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-600">
+                    {selectedPromptType && (
+                      <span className="flex items-center">
+                        <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                        {businessSolutions.find(s => s.id === selectedPromptType)?.name} selected
+                      </span>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={handleGenerate}
+                    disabled={!selectedPromptType || !userInput.trim() || isGenerating}
+                    className={`px-8 py-4 rounded-lg font-medium transition-all duration-200 flex items-center ${
+                      !selectedPromptType || !userInput.trim() || isGenerating
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'
+                    }`}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                        Mexaly AI Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Generate with Mexaly AI
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+        )}
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
-              <div className="flex items-center">
-                <svg className="w-5 h-5 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-red-700 font-medium">{error}</p>
+        {activeTab === 'preview' && generatedSchema && (
+          <div ref={formRef} className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+            {/* Schema Header */}
+            <div className="mb-8">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900 mb-2">{generatedSchema.title}</h2>
+                  <p className="text-gray-600 text-lg">{generatedSchema.description}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                    ✓ AI Generated
+                  </span>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    Mexaly Enhanced
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={handleGenerateForm}
-              disabled={loading || !prompt.trim()}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-8 rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-lg flex items-center justify-center group"
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating Your Form...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Generate Form
-                </>
+              
+              {/* Mexaly Features Display */}
+              {generatedSchema.mexalyFeatures && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  {generatedSchema.mexalyFeatures.integrations && (
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+                        <Database className="w-4 h-4 mr-2" />
+                        Integrations
+                      </h4>
+                      <div className="space-y-1">
+                        {Object.entries(generatedSchema.mexalyFeatures.integrations).map(([key, enabled]) => (
+                          enabled && (
+                            <span key={key} className="inline-block text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded mr-1">
+                              {key.toUpperCase()}
+                            </span>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {generatedSchema.mexalyFeatures.security && (
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-green-900 mb-2 flex items-center">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Security & Compliance
+                      </h4>
+                      <div className="space-y-1">
+                        {generatedSchema.mexalyFeatures.security.complianceFrameworks.map((framework, i) => (
+                          <span key={i} className="inline-block text-xs bg-green-200 text-green-800 px-2 py-1 rounded mr-1">
+                            {framework}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {generatedSchema.mexalyFeatures.aiInsights && (
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-purple-900 mb-2 flex items-center">
+                        <Brain className="w-4 h-4 mr-2" />
+                        AI Insights
+                      </h4>
+                      <div className="space-y-1">
+                        {generatedSchema.mexalyFeatures.aiInsights.analytics.slice(0, 2).map((analytic, i) => (
+                          <span key={i} className="inline-block text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded mr-1">
+                            {analytic.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
-            </button>
-
-            {schema && (
-              <button
-                onClick={handleClearForm}
-                className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-500/20 transition-all duration-200 font-semibold"
-              >
-                Start Over
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Generated Form Section */}
-        {schema && (
-          <div ref={formRef} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-12 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-emerald-500"></div>
-            
-            <div className="mb-8 text-center">
-              <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-800 text-sm font-medium mb-4">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Form Generated Successfully
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Your AI-Generated Form</h2>
-              <p className="text-gray-600">Ready to use with intelligent validation and modern design</p>
             </div>
-            
-            <DynamicForm schema={schema} />
-          </div>
-        )}
 
-        {/* Example Prompts Section */}
-        {showExamples && (
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
-            
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Example Prompts</h3>
-              <p className="text-gray-600">Get inspired with these professionally crafted form examples</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-              {examplePrompts.map((example, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleExampleClick(example.prompt)}
-                  className="group text-left p-6 border-2 border-gray-100 rounded-xl hover:border-blue-300 hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-gray-50 to-white hover:from-blue-50 hover:to-purple-50"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
-                      {example.title}
-                    </h4>
-                    <svg className="w-5 h-5 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">{example.description}</p>
-                  <div className="text-xs text-gray-500 italic line-clamp-3 bg-gray-50 p-3 rounded-lg border-l-4 border-gray-200">
-                    "{example.prompt.substring(0, 120)}..."
-                  </div>
-                </button>
+            {/* Form Preview */}
+            <form className="space-y-8">
+              {generatedSchema.fields.map((field, index) => (
+                <div key={index} className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-800">
+                    {field.label}
+                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                    {field.aiEnhanced && (
+                      <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800">
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        AI Enhanced
+                      </span>
+                    )}
+                  </label>
+                  {field.description && (
+                    <p className="text-sm text-gray-600">{field.description}</p>
+                  )}
+                  {renderField(field, index)}
+                  {field.validation && (
+                    <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                      Validation: {JSON.stringify(field.validation, null, 1)}
+                    </div>
+                  )}
+                </div>
               ))}
+
+              <div className="flex space-x-4 pt-8 border-t border-gray-200">
+                <button
+                  type="submit"
+                  className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg flex items-center"
+                >
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                  {generatedSchema.submitText}
+                </button>
+                <button
+                  type="reset"
+                  className="px-8 py-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                >
+                  {generatedSchema.resetText}
+                </button>
+              </div>
+            </form>
+
+            {/* Workflow Preview */}
+            {generatedSchema.mexalyFeatures?.workflow && (
+              <div className="mt-12 pt-8 border-t border-gray-200">
+                <h3 className="text-2xl font-semibold mb-6 flex items-center">
+                  <GitBranch className="w-6 h-6 mr-3 text-blue-600" />
+                  Intelligent Workflow
+                </h3>
+                <div className="flex space-x-6 overflow-x-auto pb-4">
+                  {generatedSchema.mexalyFeatures.workflow.stages.map((stage, index) => (
+                    <div key={index} className="min-w-80 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                      <div className="flex items-center mb-4">
+                        <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                          {index + 1}
+                        </div>
+                        <h4 className="font-semibold text-gray-900">{stage.name}</h4>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Fields</h5>
+                          <div className="space-y-1">
+                            {stage.fields.map((fieldName, i) => {
+                              const field = generatedSchema.fields.find(f => f.name === fieldName);
+                              return (
+                                <div key={i} className="flex items-center text-sm text-gray-600">
+                                  <CheckCircle className="w-3 h-3 text-green-500 mr-2" />
+                                  {field?.label || fieldName}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        
+                        {stage.approvers && (
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">Approvers</h5>
+                            <div className="space-y-1">
+                              {stage.approvers.map((approver, i) => (
+                                <div key={i} className="flex items-center text-sm text-blue-600">
+                                  <Users className="w-3 h-3 mr-2" />
+                                  {approver.replace(/_/g, ' ')}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {stage.automation && (
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">Automation</h5>
+                            <div className="flex space-x-2">
+                              {stage.automation.email && (
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Email</span>
+                              )}
+                              {stage.automation.webhook && (
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Webhook</span>
+                              )}
+                              {stage.automation.dataSync && (
+                                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Data Sync</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Generated Schema JSON */}
+            <div className="mt-12 pt-8 border-t border-gray-200">
+              <h3 className="text-2xl font-semibold mb-6 flex items-center">
+                <Code className="w-6 h-6 mr-3 text-purple-600" />
+                Mexaly Schema Export
+              </h3>
+              <div className="bg-gray-900 rounded-lg overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 bg-gray-800">
+                  <span className="text-gray-300 text-sm font-medium">schema.json</span>
+                  <button className="text-gray-400 hover:text-white text-sm">Copy</button>
+                </div>
+                <pre className="text-green-400 p-6 overflow-x-auto text-sm leading-relaxed">
+                  {JSON.stringify(generatedSchema, null, 2)}
+                </pre>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Features Section */}
-        <div className="mt-20 text-center">
-          <h3 className="text-3xl font-bold text-gray-900 mb-12">Powerful Features</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+        {/* Mexaly Platform Features */}
+        <div className="mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            {
+              icon: Workflow,
+              title: 'Smart Automation',
+              description: 'Reduce manual tasks by up to 80% with intelligent process automation',
+              color: 'from-blue-500 to-blue-600'
+            },
+            {
+              icon: Shield,
+              title: 'Enterprise Security',
+              description: 'SOC 2, HIPAA, GDPR compliant with advanced threat protection',
+              color: 'from-red-500 to-red-600'
+            },
+            {
+              icon: BarChart3,
+              title: 'AI Insights',
+              description: 'Predictive analytics and real-time monitoring with ML-powered insights',
+              color: 'from-purple-500 to-purple-600'
+            },
+            {
+              icon: Globe,
+              title: 'Seamless Integration',
+              description: 'Connect with existing systems via comprehensive API ecosystem',
+              color: 'from-green-500 to-green-600'
+            }
+          ].map((feature, index) => {
+            const IconComponent = feature.icon;
+            return (
+              <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow duration-200">
+                <div className={`w-12 h-12 bg-gradient-to-r ${feature.color} rounded-lg flex items-center justify-center mb-4`}>
+                  <IconComponent className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-600 text-sm">{feature.description}</p>
               </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">AI-Powered Generation</h4>
-              <p className="text-gray-600">Advanced AI understands context and creates forms with appropriate field types and validation</p>
-            </div>
-            
-            <div className="p-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17v4a2 2 0 002 2h4M13 13h4a2 2 0 012 2v4a2 2 0 01-2 2H9a2 2 0 01-2-2v-4a2 2 0 012-2z" />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">20+ Field Types</h4>
-              <p className="text-gray-600">From basic inputs to advanced components like rating systems, color pickers, and tag inputs</p>
-            </div>
-            
-            <div className="p-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">Smart Validation</h4>
-              <p className="text-gray-600">Intelligent validation rules with real-time feedback and user-friendly error messages</p>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
-        {/* Field Types Showcase */}
-        <div className="mt-20 bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-8">
+        {/* Business Outcomes */}
+        <div className="mt-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-2xl p-8 text-white">
           <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Supported Field Types</h3>
-            <p className="text-gray-600">Our AI can generate any of these field types based on your description</p>
+            <h3 className="text-3xl font-bold mb-4">Proven Business Outcomes</h3>
+            <p className="text-xl opacity-90">Transform your organization with Mexaly's intelligent platform</p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { type: 'Data Input', icon: '📝', color: 'bg-blue-100 text-blue-700' },
-              { type: 'Email', icon: '📧', color: 'bg-green-100 text-green-700' },
-              { type: 'Password', icon: '🔒', color: 'bg-red-100 text-red-700' },
-              { type: 'Phone', icon: '📱', color: 'bg-purple-100 text-purple-700' },
-              { type: 'Currency', icon: '💰', color: 'bg-yellow-100 text-yellow-700' },
-              { type: 'Percentage', icon: '📊', color: 'bg-indigo-100 text-indigo-700' },
-              { type: 'Date/Time', icon: '📅', color: 'bg-pink-100 text-pink-700' },
-              { type: 'Duration', icon: '⏱️', color: 'bg-orange-100 text-orange-700' },
-              { type: 'File Attach', icon: '📎', color: 'bg-teal-100 text-teal-700' },
-              { type: 'Image Upload', icon: '🖼️', color: 'bg-cyan-100 text-cyan-700' },
-              { type: 'Signature', icon: '✍️', color: 'bg-lime-100 text-lime-700' },
-              { type: 'Barcode', icon: '🔲', color: 'bg-amber-100 text-amber-700' },
-              { type: 'Link Fields', icon: '🔗', color: 'bg-rose-100 text-rose-700' },
-              { type: 'JSON Data', icon: '📋', color: 'bg-violet-100 text-violet-700' },
-              { type: 'Geolocation', icon: '📍', color: 'bg-emerald-100 text-emerald-700' },
-              { type: 'Code Editor', icon: '💻', color: 'bg-slate-100 text-slate-700' },
-              { type: 'Markdown', icon: '📄', color: 'bg-sky-100 text-sky-700' },
-              { type: 'Tables', icon: '📑', color: 'bg-gray-100 text-gray-700' },
-              { type: 'Multi-Select', icon: '☑️', color: 'bg-blue-100 text-blue-700' },
-              { type: 'Autocomplete', icon: '🔍', color: 'bg-green-100 text-green-700' },
-              { type: 'Rating Stars', icon: '⭐', color: 'bg-yellow-100 text-yellow-700' },
-              { type: 'Color Picker', icon: '🎨', color: 'bg-purple-100 text-purple-700' },
-              { type: 'Toggle Switch', icon: '🔄', color: 'bg-indigo-100 text-indigo-700' },
-              { type: 'Tag Input', icon: '🏷️', color: 'bg-pink-100 text-pink-700' }
-            ].map((field, index) => (
-              <div key={index} className={`${field.color} px-3 py-2 rounded-lg text-center text-sm font-medium flex items-center justify-center space-x-2`}>
-                <span>{field.icon}</span>
-                <span className="hidden sm:inline">{field.type}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Tips Section */}
-        <div className="mt-20 bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">💡 Tips for Better Results</h3>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="p-4 bg-blue-50 rounded-xl border-l-4 border-blue-400">
-              <h4 className="font-semibold text-blue-900 mb-2">Be Specific & Contextual</h4>
-              <p className="text-blue-700 text-sm">Mention the business context (CRM, healthcare, e-commerce) and specific field types you need (currency, rating, geolocation, etc.)</p>
-            </div>
-            
-            <div className="p-4 bg-green-50 rounded-xl border-l-4 border-green-400">
-              <h4 className="font-semibold text-green-900 mb-2">Include Relationships</h4>
-              <p className="text-green-700 text-sm">Specify links between data (customer to orders, employee to department) and table structures for complex forms</p>
-            </div>
-            
-            <div className="p-4 bg-purple-50 rounded-xl border-l-4 border-purple-400">
-              <h4 className="font-semibold text-purple-900 mb-2">Advanced Features</h4>
-              <p className="text-purple-700 text-sm">Request specialized fields like signatures, barcodes, JSON data, markdown editors, or geolocation for enhanced functionality</p>
-            </div>
-            
-            <div className="p-4 bg-orange-50 rounded-xl border-l-4 border-orange-400">
-              <h4 className="font-semibold text-orange-900 mb-2">Data Validation</h4>
-              <p className="text-orange-700 text-sm">Mention validation requirements like file size limits, currency precision, date ranges, or pattern matching</p>
-            </div>
-            
-            <div className="p-4 bg-teal-50 rounded-xl border-l-4 border-teal-400">
-              <h4 className="font-semibold text-teal-900 mb-2">User Experience</h4>
-              <p className="text-teal-700 text-sm">Request features like autocomplete, rating systems, progress indicators, or conditional field visibility</p>
-            </div>
-            
-            <div className="p-4 bg-pink-50 rounded-xl border-l-4 border-pink-400">
-              <h4 className="font-semibold text-pink-900 mb-2">Enterprise Features</h4>
-              <p className="text-pink-700 text-sm">Include workflow elements like approval chains, document attachments, digital signatures, or audit trails</p>
-            </div>
+              { metric: '80%', label: 'Reduction in Manual Tasks', icon: Clock },
+              { metric: '60%', label: 'Faster Time-to-Market', icon: TrendingUp },
+              { metric: '40%', label: 'Cost Optimization', icon: DollarSign },
+              { metric: '99.9%', label: 'System Reliability', icon: Shield }
+            ].map((outcome, index) => {
+              const IconComponent = outcome.icon;
+              return (
+                <div key={index} className="text-center">
+                  <IconComponent className="w-8 h-8 mx-auto mb-3 opacity-90" />
+                  <div className="text-3xl font-bold mb-1">{outcome.metric}</div>
+                  <div className="text-sm opacity-90">{outcome.label}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
+
+export default MexalyAIFormBuilder;
