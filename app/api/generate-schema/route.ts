@@ -8,25 +8,7 @@ const openai = new OpenAI({
 interface Field {
   name: string;
   label: string;
-  type: 
-    // Basic Data Types
-    'data' | 'small_text' | 'long_text' | 'text' | 'markdown' | 'html' | 'code' |
-    // Numeric Types  
-    'int' | 'float' | 'currency' | 'percent' | 'rating' |
-    // Date & Time
-    'date' | 'datetime' | 'time' | 'duration' |
-    // Relationships
-    'link' | 'dynamic_link' | 'table' | 'table_multiselect' |
-    // Choice
-    'select' | 'autocomplete' | 'multiselect' | 'radio' | 'checkbox' |
-    // Files & Media
-    'attach' | 'attach_image' | 'image' | 'signature' | 'barcode' |
-    // Visual/Layout/UI
-    'color' | 'heading' | 'button' | 'read_only' | 'icon' |
-    // Specialized
-    'geolocation' | 'json' | 'password' | 'phone' | 'email' | 'url' |
-    // Additional Web Types
-    'number' | 'range' | 'search' | 'switch' | 'tags' | 'file';
+  type: 'text' | 'email' | 'password' | 'textarea' | 'select' | 'file' | 'number' | 'tel' | 'url' | 'date' | 'time' | 'datetime-local' | 'checkbox' | 'radio' | 'range' | 'color' | 'search' | 'multiselect' | 'rating' | 'switch' | 'tags';
   required?: boolean;
   options?: string[];
   placeholder?: string;
@@ -37,14 +19,6 @@ interface Field {
   accept?: string;
   pattern?: string;
   description?: string;
-  defaultValue?: any;
-  precision?: number;
-  currency?: string;
-  targetDocType?: string;
-  linkFilters?: Record<string, any>;
-  maxStars?: number;
-  allowHalfRating?: boolean;
-  mapType?: 'roadmap' | 'satellite' | 'hybrid' | 'terrain';
   validation?: {
     minLength?: number;
     maxLength?: number;
@@ -52,8 +26,6 @@ interface Field {
     max?: number;
     pattern?: string;
     custom?: string;
-    fileSize?: string;
-    fileTypes?: string[];
   };
 }
 
@@ -65,328 +37,251 @@ interface Schema {
   resetText?: string;
 }
 
-// Helper function to clean and parse JSON response
-function parseAIResponse(response: string): Schema {
-  // Remove common markdown formatting
-  let cleanedResponse = response
-    .replace(/```json\s*/g, '')
-    .replace(/```\s*/g, '')
-    .replace(/^```$/gm, '')
-    .trim();
-
-  // Remove any text before the first { or [
-  const jsonStart = cleanedResponse.search(/^[\s]*[{\[]/m);
-  if (jsonStart !== -1) {
-    cleanedResponse = cleanedResponse.substring(jsonStart);
-  }
-
-  // Remove any text after the last } or ]
-  const jsonEnd = cleanedResponse.lastIndexOf('}');
-  const jsonEndArray = cleanedResponse.lastIndexOf(']');
-  const actualEnd = Math.max(jsonEnd, jsonEndArray);
-  if (actualEnd !== -1) {
-    cleanedResponse = cleanedResponse.substring(0, actualEnd + 1);
-  }
-
-  // Try to fix common JSON issues
-  cleanedResponse = cleanedResponse
-    .replace(/,\s*}/g, '}')  // Remove trailing commas before }
-    .replace(/,\s*]/g, ']')  // Remove trailing commas before ]
-    .replace(/([{,]\s*)(\w+):/g, '$1"$2":')  // Quote unquoted keys
-    .replace(/:\s*'([^']*)'/g, ': "$1"')  // Replace single quotes with double quotes
-    .replace(/\n/g, ' ')  // Replace newlines with spaces
-    .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
-    .trim();
-
+export async function POST(request: NextRequest) {
   try {
-    return JSON.parse(cleanedResponse);
-  } catch (error) {
-    // If parsing fails, try to extract JSON using regex
-    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-    throw new Error(`Failed to parse JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
+    const { prompt } = await request.json()
 
-// Enhanced validation function
-function validateSchema(schema: any): { isValid: boolean; errors: string[] } {
-  const errors: string[] = [];
-
-  // Check if schema is an object
-  if (!schema || typeof schema !== 'object') {
-    errors.push('Schema must be an object');
-    return { isValid: false, errors };
-  }
-
-  // Validate required fields array
-  if (!schema.fields || !Array.isArray(schema.fields)) {
-    errors.push('Schema must contain a fields array');
-    return { isValid: false, errors };
-  }
-
-  if (schema.fields.length === 0) {
-    errors.push('Schema must contain at least one field');
-    return { isValid: false, errors };
-  }
-
-  // Allowed field types
-  const allowedTypes = [
-    'data', 'small_text', 'long_text', 'text', 'markdown', 'html', 'code',
-    'int', 'float', 'currency', 'percent', 'rating',
-    'date', 'datetime', 'time', 'duration',
-    'link', 'dynamic_link', 'table', 'table_multiselect',
-    'select', 'autocomplete', 'multiselect', 'radio', 'checkbox',
-    'attach', 'attach_image', 'image', 'signature', 'barcode',
-    'color', 'heading', 'button', 'read_only', 'icon',
-    'geolocation', 'json', 'password', 'phone', 'email', 'url',
-    'number', 'range', 'search', 'switch', 'tags', 'file'
-  ];
-
-  // Validate each field
-  const fieldNames = new Set<string>();
-  
-  for (let i = 0; i < schema.fields.length; i++) {
-    const field = schema.fields[i];
-    const fieldPrefix = `Field ${i + 1}`;
-
-    // Check required properties
-    if (!field.name || typeof field.name !== 'string') {
-      errors.push(`${fieldPrefix}: 'name' is required and must be a string`);
-    }
-    if (!field.label || typeof field.label !== 'string') {
-      errors.push(`${fieldPrefix}: 'label' is required and must be a string`);
-    }
-    if (!field.type || typeof field.type !== 'string') {
-      errors.push(`${fieldPrefix}: 'type' is required and must be a string`);
+    if (!prompt) {
+      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
     }
 
-    // Check for duplicate field names
-    if (field.name) {
-      if (fieldNames.has(field.name)) {
-        errors.push(`${fieldPrefix}: Duplicate field name '${field.name}'`);
-      }
-      fieldNames.add(field.name);
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error: 'OpenAI API key is not configured' }, { status: 500 })
     }
 
-    // Validate field type
-    if (field.type && !allowedTypes.includes(field.type)) {
-      errors.push(`${fieldPrefix}: Invalid field type '${field.type}'. Allowed types: ${allowedTypes.join(', ')}`);
-    }
+    const systemPrompt = `You are an advanced form builder AI with expertise in UX/UI design and form optimization. Generate comprehensive JSON schemas for forms based on natural language descriptions.
 
-    // Validate field-specific requirements
-    if (['select', 'multiselect', 'radio', 'autocomplete'].includes(field.type)) {
-      if (!field.options || !Array.isArray(field.options) || field.options.length === 0) {
-        errors.push(`${fieldPrefix}: Field type '${field.type}' requires a non-empty options array`);
-      }
-    }
+AVAILABLE FIELD TYPES:
+- text: Short text inputs (names, titles, usernames)
+- email: Email addresses with validation
+- password: Password fields with security
+- tel: Phone numbers with formatting
+- url: Website URLs with validation
+- search: Search inputs with autocomplete styling
+- number: Numeric inputs with min/max
+- range: Slider inputs with visual feedback
+- textarea: Multi-line text (descriptions, messages, comments)
+- select: Single-choice dropdown menus
+- multiselect: Multiple-choice checkboxes in a scrollable container
+- radio: Single-choice radio buttons
+- checkbox: Single boolean checkbox
+- switch: Toggle switch for on/off states
+- file: File uploads (single or multiple)
+- date: Date picker
+- time: Time picker
+- datetime-local: Combined date and time
+- color: Color picker with hex input
+- rating: 5-star rating system
+- tags: Dynamic tag input system
 
-    if (field.type === 'link' && !field.targetDocType) {
-      // This is a warning, not an error
-      console.warn(`${fieldPrefix}: Link field '${field.name}' should specify targetDocType for better UX`);
-    }
-
-    // Validate numeric constraints
-    if (field.min !== undefined && field.max !== undefined && field.min > field.max) {
-      errors.push(`${fieldPrefix}: 'min' value cannot be greater than 'max' value`);
-    }
-
-    // Validate rating field
-    if (field.type === 'rating' && field.maxStars !== undefined) {
-      if (field.maxStars < 1 || field.maxStars > 10) {
-        errors.push(`${fieldPrefix}: 'maxStars' must be between 1 and 10`);
-      }
-    }
-  }
-
-  return { isValid: errors.length === 0, errors };
-}
-
-// Enhanced system prompt with better JSON formatting instructions
-const getSystemPrompt = () => `You are an advanced form builder AI. You must respond with ONLY valid JSON that matches the exact schema format specified below. Do not include any markdown formatting, explanations, or additional text.
-
-CRITICAL INSTRUCTIONS:
-1. Return ONLY valid JSON - no markdown, no explanations, no additional text
-2. Do not wrap the JSON in \`\`\`json blocks
-3. Ensure all strings are properly quoted with double quotes
-4. Remove any trailing commas
-5. Validate your JSON before responding
-
-REQUIRED JSON SCHEMA:
+SCHEMA STRUCTURE:
 {
   "title": "Form Title",
   "description": "Optional form description",
   "fields": [
     {
-      "name": "field_name",
-      "label": "Field Label",
+      "name": "fieldName",
+      "label": "Display Label",
       "type": "field_type",
       "required": true|false,
-      "placeholder": "optional placeholder",
-      "options": ["option1", "option2"],
+      "placeholder": "Helpful placeholder text",
+      "description": "Additional field explanation",
+      "options": ["option1", "option2"], // For select/multiselect/radio
+      "min": 0, // For number/range/date
+      "max": 100, // For number/range/date
+      "step": 1, // For number/range
+      "multiple": true|false, // For file inputs
+      "accept": ".pdf,.doc,.docx", // For file inputs
+      "pattern": "regex_pattern", // For validation
       "validation": {
-        "minLength": 0,
-        "maxLength": 100
+        "minLength": 3,
+        "maxLength": 50,
+        "min": 0,
+        "max": 100,
+        "pattern": "regex",
+        "custom": "Custom error message"
       }
     }
   ],
-  "submitText": "Submit",
-  "resetText": "Reset"
+  "submitText": "Custom Submit Button Text",
+  "resetText": "Custom Reset Button Text"
 }
 
-FIELD TYPES: data, small_text, long_text, text, markdown, html, code, int, float, currency, percent, rating, date, datetime, time, duration, link, dynamic_link, table, table_multiselect, select, autocomplete, multiselect, radio, checkbox, attach, attach_image, image, signature, barcode, color, heading, button, read_only, icon, geolocation, json, password, phone, email, url, number, range, search, switch, tags, file
+INTELLIGENT FIELD TYPE SELECTION:
+- Names, titles, addresses → text
+- Email addresses → email
+- Phone numbers → tel
+- Websites, social media → url
+- Passwords, PINs → password
+- Ages, quantities, prices → number
+- Ratings, scales, sliders → range or rating
+- Comments, descriptions, feedback → textarea
+- Country, state, category selection → select
+- Multiple categories, interests → multiselect
+- Gender, yes/no questions → radio
+- Agreement, consent → checkbox
+- Enable/disable features → switch
+- Documents, images → file
+- Birth dates, deadlines → date
+- Appointment times → time or datetime-local
+- Brand colors, preferences → color
+- Skills, interests, hobbies → tags
+- Search functionality → search
 
-RULES:
-- Field names must be unique and camelCase
-- Select/multiselect fields must have options array
-- Currency fields should include currency property
-- Rating fields should include maxStars property
-- All field names must be unique
-- Respond with valid JSON only`;
+VALIDATION RULES:
+- Email fields: Automatic email validation
+- Phone fields: Phone number pattern validation
+- URL fields: URL format validation
+- Password fields: Minimum security requirements
+- Required fields: Mark essential fields as required
+- Length limits: Set appropriate min/max lengths
+- Number ranges: Set realistic min/max values
+- File types: Specify accepted file extensions
 
-export async function POST(request: NextRequest) {
-  try {
-    const { prompt } = await request.json();
+SMART SUGGESTIONS:
+- Job applications: name, email, phone, resume (file), position (select), experience (number), cover letter (textarea)
+- Contact forms: name, email, subject (select), message (textarea), urgency (radio)
+- Registration forms: personal info, preferences (multiselect), agreements (checkbox), profile picture (file)
+- Surveys: demographics (select/radio), ratings (rating/range), feedback (textarea), suggestions (tags)
+- E-commerce: product details, pricing (number), categories (multiselect), images (file), availability (switch)
+- Event registration: attendee info, dietary restrictions (multiselect), special requests (textarea), emergency contact
+- Feedback forms: overall rating (rating), specific ratings (range), comments (textarea), recommendations (checkbox)
 
-    // Validate input
-    if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Valid prompt is required' }, 
-        { status: 400 }
-      );
+ENHANCED UX FEATURES:
+- Add helpful placeholders for guidance
+- Include field descriptions for complex inputs
+- Set appropriate validation with user-friendly error messages
+- Use logical field ordering and grouping
+- Provide realistic options for select fields
+- Consider accessibility and mobile usability
+
+EXAMPLES:
+
+"Job application form":
+- Personal: name (text), email (email), phone (tel)
+- Professional: resume (file), position (select), experience (number), salary expectation (range)
+- Additional: cover letter (textarea), skills (tags), availability (date), willing to relocate (switch)
+
+"Customer feedback survey":
+- Identity: name (text), email (email), customer since (date)
+- Experience: overall rating (rating), service quality (range), likelihood to recommend (range)
+- Feedback: best aspects (multiselect), improvements needed (textarea), contact preferences (radio)
+
+"E-commerce product form":
+- Basic: product name (text), price (number), category (select), subcategories (multiselect)
+- Details: description (textarea), specifications (tags), availability (switch), launch date (date)
+- Media: main image (file), gallery images (file with multiple), color variants (color)
+
+Return ONLY valid JSON with no additional text. Ensure all field names are camelCase and unique.`
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000,
+    })
+
+    const response = completion.choices[0]?.message?.content
+    if (!response) {
+      return NextResponse.json({ error: 'No response from OpenAI' }, { status: 500 })
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('OpenAI API key is not configured');
-      return NextResponse.json(
-        { error: 'AI service is not configured' }, 
-        { status: 500 }
-      );
-    }
-
-    // Make OpenAI API call with retry logic
-    let completion;
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    while (attempts < maxAttempts) {
-      try {
-        completion = await openai.chat.completions.create({
-          model: 'gpt-4',
-          messages: [
-            { role: 'system', content: getSystemPrompt() },
-            { role: 'user', content: `Create a form schema for: ${prompt}` }
-          ],
-          temperature: 0.3, // Lower temperature for more consistent JSON
-          max_tokens: 2000,
-          presence_penalty: 0,
-          frequency_penalty: 0,
-        });
-        break;
-      } catch (apiError: any) {
-        attempts++;
-        
-        if (apiError.code === 'rate_limit_exceeded') {
-          if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-            continue;
-          }
-          return NextResponse.json(
-            { error: 'Rate limit exceeded. Please try again in a moment.' },
-            { status: 429 }
-          );
-        }
-        
-        if (apiError.code === 'insufficient_quota') {
-          return NextResponse.json(
-            { error: 'API quota exceeded. Please check your usage.' },
-            { status: 402 }
-          );
-        }
-        
-        if (attempts === maxAttempts) {
-          throw apiError;
-        }
-      }
-    }
-
-    const rawResponse = completion?.choices[0]?.message?.content;
-    if (!rawResponse) {
-      return NextResponse.json(
-        { error: 'No response generated from AI' }, 
-        { status: 500 }
-      );
-    }
-
-    // Parse and validate the response
-    let schema: Schema;
+    // Try to parse the JSON response
+    let schema: Schema
     try {
-      schema = parseAIResponse(rawResponse);
+      // Clean the response in case there's any markdown formatting
+      const cleanedResponse = response.replace(/```json\n?|```\n?/g, '').trim()
+      schema = JSON.parse(cleanedResponse)
     } catch (parseError) {
-      console.error('JSON parsing error:', parseError);
-      console.error('Raw AI response:', rawResponse);
-      
-      return NextResponse.json({
-        error: 'Invalid JSON response from AI. Please try a different prompt.',
-        details: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
-      }, { status: 500 });
+      console.error('JSON parsing error:', parseError)
+      console.error('Raw response:', response)
+      return NextResponse.json({ error: 'Invalid JSON response from AI' }, { status: 500 })
     }
 
-    // Validate the parsed schema
-    const validation = validateSchema(schema);
-    if (!validation.isValid) {
-      console.error('Schema validation errors:', validation.errors);
-      console.error('Invalid schema:', JSON.stringify(schema, null, 2));
-      
-      return NextResponse.json({
-        error: 'Generated schema is invalid',
-        details: validation.errors.join('; ')
-      }, { status: 500 });
+    // Validate the schema structure
+    if (!schema.fields || !Array.isArray(schema.fields)) {
+      return NextResponse.json({ error: 'Invalid schema structure: fields array is required' }, { status: 500 })
     }
 
-    // Apply default values and enhancements
+    if (schema.fields.length === 0) {
+      return NextResponse.json({ error: 'Schema must contain at least one field' }, { status: 500 })
+    }
+
+    // Validate each field
+    const allowedTypes = [
+      'text', 'email', 'password', 'textarea', 'select', 'file', 'number', 'tel', 'url', 
+      'date', 'time', 'datetime-local', 'checkbox', 'radio', 'range', 'color', 'search', 
+      'multiselect', 'rating', 'switch', 'tags'
+    ]
+
+    for (const field of schema.fields) {
+      if (!field.name || !field.label || !field.type) {
+        return NextResponse.json({ 
+          error: `Invalid field structure: name, label, and type are required. Field: ${JSON.stringify(field)}` 
+        }, { status: 500 })
+      }
+      
+      if (!allowedTypes.includes(field.type)) {
+        return NextResponse.json({ 
+          error: `Invalid field type: ${field.type}. Allowed types: ${allowedTypes.join(', ')}` 
+        }, { status: 500 })
+      }
+
+      // Validate field-specific requirements
+      if (['select', 'multiselect', 'radio'].includes(field.type) && (!field.options || field.options.length === 0)) {
+        return NextResponse.json({ 
+          error: `Field type '${field.type}' requires options array. Field: ${field.name}` 
+        }, { status: 500 })
+      }
+
+      // Ensure field names are unique
+      const fieldNames = schema.fields.map(f => f.name)
+      const uniqueNames = new Set(fieldNames)
+      if (fieldNames.length !== uniqueNames.size) {
+        return NextResponse.json({ 
+          error: 'Field names must be unique' 
+        }, { status: 500 })
+      }
+    }
+
+    // Add default values if missing
     if (!schema.title) {
-      schema.title = 'Generated Form';
+      schema.title = 'Generated Form'
     }
+
     if (!schema.submitText) {
-      schema.submitText = 'Submit';
+      schema.submitText = 'Submit Form'
     }
+
     if (!schema.resetText) {
-      schema.resetText = 'Reset';
+      schema.resetText = 'Reset'
     }
 
-    // Enhance fields with defaults
-    schema.fields.forEach(field => {
-      if (field.type === 'currency' && !field.currency) {
-        field.currency = 'USD';
-      }
-      if (field.type === 'rating' && !field.maxStars) {
-        field.maxStars = 5;
-      }
-      if (field.type === 'attach_image' && !field.accept) {
-        field.accept = '.jpg,.jpeg,.png,.gif,.webp';
-      }
-      if (field.type === 'geolocation' && !field.mapType) {
-        field.mapType = 'roadmap';
-      }
-    });
-
-    return NextResponse.json({ schema });
+    return NextResponse.json({ schema })
 
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API Error:', error)
     
     if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      // Handle specific OpenAI errors
+      if (error.message.includes('rate limit')) {
+        return NextResponse.json({ 
+          error: 'Rate limit exceeded. Please try again in a moment.' 
+        }, { status: 429 })
+      }
+      
+      if (error.message.includes('insufficient_quota')) {
+        return NextResponse.json({ 
+          error: 'OpenAI quota exceeded. Please check your API usage.' 
+        }, { status: 402 })
+      }
+      
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
